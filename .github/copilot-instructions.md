@@ -6,9 +6,7 @@ This document outlines the systematic project development workflow for the indie
 
 **Key Achievement**: Evolved from refactoring-specific workflow to comprehensive project management system supporting diverse development tasks while maintaining quality and documentation standards.
 
-## Universal Development Methodology
-
-### Core Principles
+## Core Development Principles
 
 1. **Work Out Loud**: Document every step with verbose explanations in daily logs
 2. **Incremental Implementation**: Make changes in small, testable steps
@@ -17,25 +15,53 @@ This document outlines the systematic project development workflow for the indie
 5. **Clear Completion Criteria**: Define success metrics before starting work
 6. **Context Preservation**: Maintain project continuity across sessions
 
-### Project Lifecycle
+## Project Workflow Management
 
-#### Project Initiation
+### Backlog-Driven Development
 
-1. **Identify and Plan**
-   - Review `projects/backlog.md` for prioritized work
-   - Create requirements document using `projects/templates/requirements-template.md`
-   - Collaborate to define clear problem statement, success criteria, and technical approach
-   - Create detailed implementation plan in `projects/active/[project-name].md`
-   - Update backlog item status: `[ ]` → `[>]` (in progress)
-   - Define clear objectives and success criteria
+1. **Project Selection**
+   - Review `projects/backlog.md` for prioritized features and improvements
+   - Select appropriate items based on current capacity and dependencies
+   - Priority levels: **High** (critical), **Medium** (important), **Low** (nice to have), **Research** (exploratory)
 
-2. **Analyze Current State**
+2. **Moving Items to Active**
+   - **Requirements Phase**: Create requirements document using `projects/templates/requirements-template.md`
+   - **Collaborative Planning**: Work together to define problem statement, success criteria, and approach
+   - **Create Project Plan**: Create detailed implementation plan in `projects/active/[project-name].md`
+   - **Update Backlog Status**: Mark as in progress: `[ ]` → `[>]`
+   - **Begin Documentation**: Start daily logging in date-based log files
+
+### Project State Management
+
+- **Backlog**: `[ ]` - Ideas and planned work
+- **Active**: `[>]` - Currently in progress with project plan
+- **Complete**: `[x]` - Finished and moved to archive
+- **Archive**: Projects moved to `projects/archive/` with completion summary
+
+### Documentation Hierarchy
+
+1. **Daily Logs** (`logs/YYYY-MM-DD-log.md`) - Implementation details and decisions
+2. **Project Plans** (`projects/active/*.md`) - Project scope, objectives, and progress
+3. **Backlog** (`projects/backlog.md`) - Strategic overview of planned work
+4. **Changelog** (`changelog.md`) - High-level site evolution summary
+
+## Development Lifecycle
+
+### Project Initiation
+
+1. **Analyze Current State**
    - Examine relevant files completely using large chunk reads
    - Identify specific patterns, dependencies, and constraints
    - Document findings in daily log with specific references
    - **Best Practice**: Large file reads are more efficient than multiple small reads
 
-#### Active Development
+2. **Define Implementation Plan**
+   - Break down work into logical phases or steps
+   - Identify dependencies and potential constraints
+   - Set clear success criteria and testing approach
+   - Document plan in project file and reference in daily logs
+
+### Active Development
 
 3. **Daily Work Sessions**
    - Start with current state analysis in `logs/YYYY-MM-DD-log.md`
@@ -48,389 +74,141 @@ This document outlines the systematic project development workflow for the indie
    - Use appropriate edit tools with sufficient context
    - **Critical**: Consider module dependencies and system constraints
 
-5. **Continuous Testing**
+5. **Continuous Testing and Validation**
    - Test functionality after each significant change
    - Document test results in daily log
    - Fix issues immediately before proceeding
    - Validate against project success criteria
    - **Best Practice**: Compile and test continuously, not just at end
 
-5. **Error Handling and Learning**
+6. **Error Handling and Learning**
    - When errors occur, document the problem and solution
    - Update approach based on technical constraints discovered
-   - Example: Block ownership issues in Markdig AST manipulation
-   - **New**: Module dependency resolution strategies
+   - Capture discoveries for future reference
+   - Update project plan if significant deviations occur
 
-#### Phase Completion
+### Project Completion
 
-6. **Comprehensive Testing**
+7. **Comprehensive Testing**
    - Test all existing functionality works correctly
-   - Verify all post types generate properly
-   - Check output files are created correctly
+   - Verify all expected outputs are generated properly
+   - Check for regressions in existing features
 
-7. **Impact Analysis and Documentation**
+8. **Impact Analysis and Documentation**
    - Document architectural improvements achieved
    - Measure code quality improvements (lines reduced, complexity, etc.)
-   - Identify performance benefits
-   - Note any edge cases discovered
+   - Identify performance benefits and note any edge cases discovered
 
-8. **Plan Updates**
-   - Update `refactor-plan.md` with checkmarks for completed items
-   - Document any deviations from original plan
-   - Note lessons learned that affect future phases
-   - Update migration strategy if needed
+9. **Finalize and Archive**
+   - Complete final summary in daily log
+   - Update project plan with completion status and lessons learned
+   - Move project plan from `active/` to `archive/`
+   - Update backlog: `[>]` → `[x]`
+   - Add entry to `changelog.md` with project summary
 
-## F# Specific Guidelines
+## Technical Implementation Guidelines
 
-### Module Organization and Dependencies ⭐ **Critical Learning**
+### Code Quality Standards
 
-- **Module Definition Order**: F# modules must be defined before they are referenced
-- **Dependency Planning**: Map out module dependencies before implementation
-  - Example: `ContentProcessor` depends on `MediaRenderer.renderMediaGallery`
-  - Solution: Define ContentProcessor type first, implement functions after dependencies
-- **Circular Dependency Avoidance**: Structure modules to avoid circular references
-- **Best Practice**: Use type-only module definitions when functions need later implementation
-
-### AST Manipulation Best Practices
-
-- **Avoid Block Movement**: Don't try to move Markdig blocks between documents due to ownership constraints
-- **Individual Block Rendering**: Render blocks separately instead of creating new documents
-- **Pipeline Consistency**: Always use the same Markdig pipeline instance
-- **AST Traversal**: Use Markdig's `Descendants<T>()` for type-safe node extraction
-
-### Module Responsibility Patterns ⭐ **Phase 2 Learning**
-
-- **Single Responsibility**: Each module should handle one concern (parsing, rendering, generation)
+- **Function Sizing**: If function >20 lines, consider separation of concerns
+- **Module Responsibility**: Each module should handle one concern (parsing, rendering, generation)
 - **Type-First Design**: Define types before functions, use them to drive API design
 - **Centralized Entry Points**: Create single functions that handle complete workflows
-- **Data Flow Architecture**: Implement clean `Parse → Process → Render` pipelines
 
-- **Single Responsibility**: Each module should handle one concern (parsing, rendering, generation)
-- **Type-First Design**: Define types before functions, use them to drive API design
-- **Centralized Entry Points**: Create single functions that handle complete workflows
-- **Data Flow Architecture**: Implement clean `Parse → Process → Render` pipelines
+### Implementation Patterns
 
-### Common Implementation Patterns
-
-#### Module Structure Pattern
-```fsharp
-// 1. Type definitions first
-module ContentProcessor =
-    type ProcessedPost = { ... }
-
-// 2. Dependencies defined
-module MediaRenderer = 
-    let renderMediaGallery items = ...
-
-// 3. Functions implemented after dependencies available
-module ContentProcessor =
-    let processPost content = ...
-```
-
-#### Function Sizing Guidelines
-- **Before**: 48-line `generatePostHtml` with mixed concerns
-- **After**: 3-line function using clean pipeline
-- **Rule**: If function >20 lines, consider separation of concerns
+1. **Enhance Core Module** (Add types and functions)
+2. **Replace Usage** (Update calling code to use new functions)
+3. **Remove Old Code** (Clean up deprecated functions)
+4. **Test and Validate** (Ensure everything works)
 
 ### Error Handling Evolution
 
-- **Phase 1**: Focus on functionality, basic error handling
-- **Phase 2**: Clean architecture with proper separation
-- **Later Phases**: Introduce Result types and comprehensive validation
+- **Early Phases**: Focus on functionality, basic error handling
+- **Later Phases**: Introduce comprehensive validation and error types
 - **Incremental Improvement**: Don't over-engineer early phases
 
 ## Documentation Standards
 
-### Log.md Structure
+### Daily Log Structure
 
 ```markdown
-# Refactoring Log - Phase X Implementation
+# Development Log - [Date]
 
-## Starting Phase X: [Phase Name]
+## Session Objectives
+[What you plan to accomplish]
 
-### Current Architecture Analysis
-[Detailed analysis of existing code]
+## Current State Analysis
+[Detailed analysis of existing code/situation]
 
-### Phase X Implementation Plan
-[Step-by-step plan]
+## Implementation Steps
 
-## Step N: [Step Description]
+### Step N: [Step Description]
 [What you're doing and why]
 
-## Step N Complete: [Achievement Summary]
-[What was accomplished, code metrics, issues fixed]
+### Step N Complete: [Achievement Summary]
+[What was accomplished, issues fixed, metrics]
 
-## Phase X Final Summary
-[Complete analysis of achievements, metrics, architecture impact]
+## Session Summary
+[Complete analysis of achievements and next steps]
 ```
+
+### Project Plan Structure
+
+Use the template in `projects/templates/requirements-template.md` for consistent project documentation including:
+- Problem statement and context
+- Success criteria and objectives
+- Technical approach and constraints
+- Implementation timeline and milestones
 
 ### Commit Message Standards
 
 - Use clear, descriptive commit messages
-- Reference phase and step when relevant
+- Reference project and step when relevant
 - Include file changes and their purpose
 
-## Phase Transition Protocol
-
-### Before Moving to Next Phase
-
-1. **Complete Current Phase Documentation**
-   - Finalize log entries with metrics and analysis
-   - Update refactor-plan.md with completed checkboxes
-   - Document any plan deviations or discoveries
-
-2. **Architecture Readiness Check**
-   - Verify foundation is solid for next phase
-   - Ensure no technical debt that would complicate future work
-   - Confirm all existing functionality works
-
-3. **Explicit Phase Completion Declaration**
-   - Mark phase as complete in both log.md and refactor-plan.md
-   - State readiness for next phase
-   - Get explicit approval before proceeding
-
-### Never Do
-
-- Don't proceed to next phase without explicit instruction
-- Don't skip testing intermediate steps
-- Don't make assumptions about user intent
-- Don't combine multiple phases in single implementation
-
-## Technical Implementation Patterns
-
-### Refactoring Sequence
-
-1. **Enhance Core Module** (Add types and functions)
-2. **Replace Usage** (Update calling code to use new functions)
-3. **Remove Old Code** (Clean up deprecated functions)
-4. **Test and Validate** (Ensure everything works)
-
-### Code Change Patterns
-
-```fsharp
-// Pattern: Centralized parsing
-let parseDocument (pipeline: MarkdownPipeline) (content: string) : ParsedDocument =
-    // Single entry point that returns structured data
-
-// Pattern: AST-based processing  
-let extractFromAst (doc: MarkdownDocument) : ResultType =
-    // Use Markdig's built-in traversal instead of string manipulation
-
-// Pattern: Composable functions
-let processContent = parseDocument >> validateContent >> renderContent
-```
-
-### Error Handling Evolution
-
-```fsharp
-// Phase 1: Basic functionality
-let processPost (content: string) : ProcessedPost
-
-// Later phases: Result types
-let processPost (content: string) : Result<ProcessedPost, ProcessingError>
-```
-
-## Quality Metrics
-
-### Success Indicators
+## Quality Metrics and Success Indicators
 
 - **Reduced Complexity**: Fewer lines of code doing the same work
 - **Eliminated Duplication**: Single source of truth for common operations
-- **Improved Performance**: Fewer parse operations, more efficient algorithms
+- **Improved Performance**: More efficient algorithms and fewer redundant operations
 - **Better Separation**: Clear module boundaries and responsibilities
+- **Enhanced Maintainability**: Code that is easier to understand and modify
 
-### Measurement Examples
+## Multi-Project Support
 
-```
-Before Phase 1:
-- extractTextContent: 17 lines of string manipulation
-- extractMediaFromMarkdown: 10 lines duplicating parsing
-- Total parsing calls per post: 3+ separate calls
-
-After Phase 1:
-- extractTextContent: 3 lines using AST-based extraction  
-- extractMediaFromMarkdown: 3 lines using centralized parser
-- Total parsing calls per post: 1 centralized call
-```
-
-## Learning Integration
-
-### Capture Discoveries
-
-- Technical constraints (like Markdig block ownership)
-- Performance characteristics
-- API design insights
-- Testing approaches that work well
-
-### Update Future Planning
-
-- Revise remaining phases based on learnings
-- Adjust complexity estimates
-- Update migration strategies
-- Refine architectural decisions
-
-## Phase Transition Protocol
-
-### Before Moving to Next Phase
-
-1. **Complete Current Phase Documentation**
-   - Finalize log entries with metrics and analysis
-   - Update refactor-plan.md with completed checkboxes
-   - Document any plan deviations or discoveries
-
-2. **Architecture Readiness Check**
-   - Verify foundation is solid for next phase
-   - Ensure no technical debt that would complicate future work
-   - Confirm all existing functionality works
-
-3. **Explicit Phase Completion Declaration**
-   - Mark phase as complete in both log.md and refactor-plan.md
-   - State readiness for next phase
-   - Get explicit approval before proceeding
-
-### Never Do
-
-- Don't proceed to next phase without explicit instruction
-- Don't skip testing intermediate steps
-- Don't make assumptions about user intent
-- Don't combine multiple phases in single implementation
-
-## Technical Implementation Patterns
-
-### Refactoring Sequence
-
-1. **Enhance Core Module** (Add types and functions)
-2. **Replace Usage** (Update calling code to use new functions)
-3. **Remove Old Code** (Clean up deprecated functions)
-4. **Test and Validate** (Ensure everything works)
-
-### Code Change Patterns
-
-```fsharp
-// Pattern: Centralized parsing
-let parseDocument (pipeline: MarkdownPipeline) (content: string) : ParsedDocument =
-    // Single entry point that returns structured data
-
-// Pattern: AST-based processing  
-let extractFromAst (doc: MarkdownDocument) : ResultType =
-    // Use Markdig's built-in traversal instead of string manipulation
-
-// Pattern: Composable functions
-let processContent = parseDocument >> validateContent >> renderContent
-```
-
-### Error Handling Evolution
-
-```fsharp
-// Phase 1: Basic functionality
-let processPost (content: string) : ProcessedPost
-
-// Later phases: Result types
-let processPost (content: string) : Result<ProcessedPost, ProcessingError>
-```
-
-## Quality Metrics
-
-### Success Indicators
-
-- **Reduced Complexity**: Fewer lines of code doing the same work
-- **Eliminated Duplication**: Single source of truth for common operations
-- **Improved Performance**: Fewer parse operations, more efficient algorithms
-- **Better Separation**: Clear module boundaries and responsibilities
-
-### Measurement Examples
-
-```
-Before Phase 1:
-- extractTextContent: 17 lines of string manipulation
-- extractMediaFromMarkdown: 10 lines duplicating parsing
-- Total parsing calls per post: 3+ separate calls
-
-After Phase 1:
-- extractTextContent: 3 lines using AST-based extraction  
-- extractMediaFromMarkdown: 3 lines using centralized parser
-- Total parsing calls per post: 1 centralized call
-```
-
-## Learning Integration
-
-### Capture Discoveries
-
-- Technical constraints (like Markdig block ownership)
-- Performance characteristics
-- API design insights
-- Testing approaches that work well
-
-### Update Future Planning
-
-- Revise remaining phases based on learnings
-- Adjust complexity estimates
-- Update migration strategies
-- Refine architectural decisions
-
-## Project Workflow Management
-
-### Backlog-Driven Development
-- Review `projects/backlog.md` for prioritized features and improvements
-- Select appropriate items based on current capacity and dependencies
-- Move selected items from backlog to active projects
-
-#### Moving Items to Active:
-1. **Requirements Phase**: Create requirements document using template in `projects/templates/`
-2. **Collaborative Planning**: Work together to define problem statement, success criteria, and approach
-3. **Create Project Plan**: Create detailed implementation plan in `projects/active/[project-name].md`
-4. **Update Backlog Status**: Mark as in progress: `[ ]` → `[>]`
-5. **Begin Documentation**: Start daily logging in date-based log files
-
-#### Priority Levels for Selection:
-- **High**: Critical for basic functionality
-- **Medium**: Important improvements 
-- **Low**: Nice to have features
-- **Research**: Exploratory work
-
-### Multi-Project Support
 - Support concurrent projects when appropriate
 - Maintain context switching discipline with proper documentation
 - Ensure each project has clear boundaries and deliverables
 - Use project plans in `projects/active/` for focused work tracking
 
-### Project State Management
-- **Backlog**: `[ ]` - Ideas and planned work
-- **Active**: `[>]` - Currently in progress with project plan
-- **Complete**: `[x]` - Finished and moved to archive
-- **Archive**: Projects moved to `projects/archive/` with completion summary
+## Project Transition Protocol
 
-### Documentation Hierarchy
-1. **Daily Logs** (`logs/YYYY-MM-DD-log.md`) - Implementation details and decisions
-2. **Project Plans** (`projects/active/*.md`) - Project scope, objectives, and progress
-3. **Backlog** (`projects/backlog.md`) - Strategic overview of planned work
-4. **Changelog** (`changelog.md`) - High-level site evolution summary
+### Before Moving to Next Phase/Project
 
-### Project Completion Protocol
+1. **Complete Current Work Documentation**
+   - Finalize log entries with metrics and analysis
+   - Update project plan with progress and any deviations
+   - Document lessons learned and discoveries
 
-#### When Completing Projects:
-1. **Finalize Documentation**
-   - Complete final summary in daily log
-   - Update project plan with completion status
-   - Document lessons learned and architectural impact
+2. **Architecture Readiness Check**
+   - Verify foundation is solid for next work
+   - Ensure no technical debt that would complicate future work
+   - Confirm all existing functionality works
 
-2. **Archive Process**
-   - Move project plan from `active/` to `archive/`
-   - Update backlog: `[>]` → `[x]`
-   - Add entry to `changelog.md` with summary
+3. **Explicit Completion Declaration**
+   - Mark work as complete in project plan
+   - State readiness for next phase or project
+   - Get explicit approval before proceeding to new work
 
-3. **Knowledge Capture**
-   - Update copilot-instructions.md with new patterns or learnings
-   - Document reusable templates or processes
-   - Note improvements for future projects
+### Never Do
 
-#### Project Completion Workflow:
-1. **Move Project Plan**: From `active/` to `archive/`
-2. **Update Backlog Status**: Mark complete: `[>]` → `[x]`
-3. **Update Changelog**: Add summary to `changelog.md`
-4. **Document Learnings**: Update copilot-instructions.md if applicable
+- Don't proceed to next phase/project without explicit instruction
+- Don't skip testing intermediate steps
+- Don't make assumptions about user intent
+- Don't combine multiple phases in single implementation
 
-### Changelog Entry Template
+## Changelog Entry Template
 
 When adding entries to `changelog.md`, use this template:
 
@@ -457,7 +235,7 @@ When adding entries to `changelog.md`, use this template:
 [Links to relevant documentation]
 ```
 
-## Example Project Completion Checklist
+## Project Completion Checklist
 
 - [ ] All project objectives implemented and tested
 - [ ] No regression in existing functionality
