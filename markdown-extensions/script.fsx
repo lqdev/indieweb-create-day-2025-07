@@ -54,6 +54,21 @@ module Domain =
         AspectRatio: AspectRatio
     }
 
+    // New type for post metadata from YAML front-matter
+    [<CLIMutable>]
+    type PostMetadata = {
+        post_type: string
+        title: string
+        publish_date: string
+        tags: string list
+    }
+
+    type Post = {
+        Metadata: PostMetadata option
+        TextContent: string
+        MediaItems: Media list
+    }
+
 
 open Domain
 
@@ -77,6 +92,41 @@ module MarkdownParser =
         alt_text: string
         aspect: string
     }
+    
+    // Parse YAML front-matter
+    let parseFrontMatter (content: string) : Domain.PostMetadata option * string =
+        let lines = content.Split([|'\n'|], StringSplitOptions.None)
+        
+        if lines.Length > 0 && lines.[0].Trim() = "---" then
+            let endIdx = 
+                lines 
+                |> Array.skip 1
+                |> Array.tryFindIndex (fun line -> line.Trim() = "---")
+            
+            match endIdx with
+            | Some idx ->
+                let frontMatterLines = lines.[1..idx]
+                let frontMatterYaml = String.concat "\n" frontMatterLines
+                let remainingContent = 
+                    lines.[(idx + 2)..]
+                    |> String.concat "\n"
+                
+                try
+                    let deserializer = 
+                        DeserializerBuilder()
+                            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                            .Build()
+                    
+                    let metadata = deserializer.Deserialize<Domain.PostMetadata>(frontMatterYaml)
+                    (Some metadata, remainingContent)
+                with
+                | ex -> 
+                    printfn "Failed to parse front-matter YAML: %s" ex.Message
+                    (None, content)
+            | None ->
+                (None, content)
+        else
+            (None, content)
     
     // Parse the YAML-like content inside the media block
     let parseMediaItems (content: string) =
@@ -208,7 +258,7 @@ module MediaRenderer =
         | Tall x -> ratioParts (x.ToString())
         | Custom ratio -> ratioParts (ratio.ToString())
 
-    let renderLayout (postContent: XmlNode option) (mediaGallery: XmlNode) =
+    let renderLayout (postContent: XmlNode option) (mediaGallery: XmlNode) (metadata: Domain.PostMetadata option) =
         html [] [
             head [] [
                 link [ _rel "stylesheet"; _href "main.css" ]
@@ -216,6 +266,20 @@ module MediaRenderer =
             body [] [
                 div [ _class "feed-container" ] [
                     article [_class "post-card"] [
+                        match metadata with
+                        | Some meta ->
+                            div [ _class "post-header" ] [
+                                h1 [ _class "post-title" ] [ str meta.title ]
+                                div [ _class "post-meta" ] [
+                                    time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
+                                    div [ _class "post-tags" ] [
+                                        for tag in meta.tags do
+                                            span [ _class "tag" ] [ str tag ]
+                                    ]
+                                ]
+                            ]
+                        | None -> ()
+                        
                         match postContent with
                         | Some content -> 
                             div [ _class "post-content" ] [
@@ -269,7 +333,7 @@ module MediaRenderer =
         
         override _.Write(renderer: HtmlRenderer, mediaBlock: MediaBlock) =
             let mediaGallery = renderMediaGallery mediaBlock.MediaItems
-            let html = RenderView.AsString.htmlNode (renderLayout None mediaGallery)
+            let html = RenderView.AsString.htmlNode (renderLayout None mediaGallery None)
             renderer.Write(html: string) |> ignore
 
 module MediaExtension =
@@ -311,22 +375,13 @@ let extractMediaFromMarkdown (markdownContent: string) =
     
     allMediaItems
 
-let extractTextContent (markdownContent: string) =
-    // Remove YAML frontmatter
-    let lines = markdownContent.Split([|'\n'|], StringSplitOptions.None)
-    let contentStartIdx = 
-        if lines.Length > 0 && lines.[0].Trim() = "---" then
-            lines 
-            |> Array.skip 1
-            |> Array.findIndex (fun line -> line.Trim() = "---")
-            |> (+) 2  // Skip both "---" lines
-        else 0
-    
-    let contentLines = lines.[contentStartIdx..]
+let extractTextContent (markdownContentWithoutFrontMatter: string) =
+    // Remove YAML frontmatter (already removed by parseFrontMatter)
+    let lines = markdownContentWithoutFrontMatter.Split([|'\n'|], StringSplitOptions.None)
     
     // Remove media blocks
     let filteredLines = 
-        contentLines
+        lines
         |> Array.fold (fun (acc, inMediaBlock) line ->
             let trimmed = line.Trim()
             if trimmed = ":::media" then
@@ -343,8 +398,11 @@ let extractTextContent (markdownContent: string) =
     String.concat "\n" filteredLines
 
 let generatePostHtml (markdownContent: string) =
-    let textContent = extractTextContent markdownContent
-    let mediaItems = extractMediaFromMarkdown markdownContent
+    // Parse front-matter first
+    let (metadata, contentWithoutFrontMatter) = MarkdownParser.parseFrontMatter markdownContent
+    
+    let textContent = extractTextContent contentWithoutFrontMatter
+    let mediaItems = extractMediaFromMarkdown contentWithoutFrontMatter
     
     // Create HTML structure manually to avoid ViewEngine complications
     let textContentHtml = 
@@ -357,6 +415,24 @@ let generatePostHtml (markdownContent: string) =
     let mediaGallery = MediaRenderer.renderMediaGallery mediaItems
     let mediaHtml = RenderView.AsString.htmlNode mediaGallery
     
+    // Generate post header HTML from metadata
+    let headerHtml = 
+        match metadata with
+        | Some meta ->
+            let tagsHtml = 
+                meta.tags
+                |> List.map (fun tag -> $"""<span class="tag">{tag}</span>""")
+                |> String.concat ""
+            
+            $"""<div class="post-header">
+                <h1 class="post-title">{meta.title}</h1>
+                <div class="post-meta">
+                    <time class="post-date" datetime="{meta.publish_date}">{meta.publish_date}</time>
+                    <div class="post-tags">{tagsHtml}</div>
+                </div>
+            </div>"""
+        | None -> ""
+    
     // Generate the complete HTML structure
     let fullHtml = $"""
 <!DOCTYPE html>
@@ -367,6 +443,7 @@ let generatePostHtml (markdownContent: string) =
 <body>
     <div class="feed-container">
         <article class="post-card">
+            {headerHtml}
             <div class="post-content">
                 {textContentHtml}
                 {mediaHtml}

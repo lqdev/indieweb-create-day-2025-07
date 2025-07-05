@@ -25,6 +25,56 @@ hr {
   display: none;
 }
 
+/* Post Header */
+.post-header {
+  padding: 20px 20px 0 20px;
+  border-bottom: 1px solid #e1e8ed;
+  margin-bottom: 0;
+}
+
+.post-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 12px 0;
+  color: #1a1a1a;
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.post-date {
+  font-size: 14px;
+  color: #657786;
+  font-weight: 500;
+}
+
+.post-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background-color: #e1f5fe;
+  color: #0277bd;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.tag:hover {
+  background-color: #b3e5fc;
+}
+
 /* Feed Post Card Container */
 .post-card {
   background: white;
