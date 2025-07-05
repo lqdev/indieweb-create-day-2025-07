@@ -404,56 +404,60 @@ let generatePostHtml (markdownContent: string) =
     let textContent = extractTextContent contentWithoutFrontMatter
     let mediaItems = extractMediaFromMarkdown contentWithoutFrontMatter
     
-    // Create HTML structure manually to avoid ViewEngine complications
-    let textContentHtml = 
-        if String.IsNullOrWhiteSpace(textContent) then ""
+    // Convert text content to XmlNode using Giraffe ViewEngine
+    let textContentNode = 
+        if String.IsNullOrWhiteSpace(textContent) then
+            None
         else 
             let htmlString = Markdown.ToHtml(textContent)
-            $"""<div class="post-text">{htmlString}</div>"""
+            // Use rawText to embed the HTML string as-is within a div
+            Some (div [ _class "post-text" ] [ rawText htmlString ])
     
-    // Generate the media gallery HTML
+    // Generate the media gallery using ViewEngine
     let mediaGallery = MediaRenderer.renderMediaGallery mediaItems
-    let mediaHtml = RenderView.AsString.htmlNode mediaGallery
     
-    // Generate post header HTML from metadata
-    let headerHtml = 
+    // Generate post header using ViewEngine
+    let headerNode = 
         match metadata with
         | Some meta ->
-            let tagsHtml = 
-                meta.tags
-                |> List.map (fun tag -> $"""<span class="tag">{tag}</span>""")
-                |> String.concat ""
-            
-            $"""<div class="post-header">
-                <h1 class="post-title">{meta.title}</h1>
-                <div class="post-meta">
-                    <time class="post-date" datetime="{meta.publish_date}">{meta.publish_date}</time>
-                    <div class="post-tags">{tagsHtml}</div>
-                </div>
-            </div>"""
-        | None -> ""
+            Some (div [ _class "post-header" ] [
+                h1 [ _class "post-title" ] [ str meta.title ]
+                div [ _class "post-meta" ] [
+                    time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
+                    div [ _class "post-tags" ] [
+                        for tag in meta.tags do
+                            span [ _class "tag" ] [ str tag ]
+                    ]
+                ]
+            ])
+        | None -> None
     
-    // Generate the complete HTML structure
-    let fullHtml = $"""
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="main.css">
-</head>
-<body>
-    <div class="feed-container">
-        <article class="post-card">
-            {headerHtml}
-            <div class="post-content">
-                {textContentHtml}
-                {mediaHtml}
-            </div>
-        </article>
-    </div>
-</body>
-</html>"""
+    // Create the content nodes list
+    let contentNodes = [
+        match textContentNode with
+        | Some node -> yield node
+        | None -> ()
+        yield mediaGallery
+    ]
     
-    fullHtml
+    // Generate the complete HTML structure using ViewEngine
+    let fullPage = html [] [
+        head [] [
+            link [ _rel "stylesheet"; _href "main.css" ]
+        ]
+        body [] [
+            div [ _class "feed-container" ] [
+                article [ _class "post-card" ] [
+                    match headerNode with
+                    | Some header -> yield header
+                    | None -> ()
+                    yield div [ _class "post-content" ] contentNodes
+                ]
+            ]
+        ]
+    ]
+    
+    RenderView.AsString.htmlDocument fullPage
 
 let generateImagePost () = 
     let md = File.ReadAllText(Path.Combine("_src","image.md"))
