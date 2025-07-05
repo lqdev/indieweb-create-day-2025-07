@@ -326,6 +326,18 @@ let generateAudioPost () =
     let outputPath = Path.Combine("_public", "audio.html")
     File.WriteAllText(outputPath, html)
 
+let generateMixedPost () = 
+    let md = File.ReadAllText(Path.Combine("_src","mixed.md"))
+
+    let html = Markdown.ToHtml(md, pipeline)
+
+    printfn "Generated HTML:"
+    printfn "%s" html
+
+    let outputPath = Path.Combine("_public", "mixed.html")
+    File.WriteAllText(outputPath, html)
+
 generateImagePost ()
 generateVideoPost ()
 generateAudioPost ()
+generateMixedPost ()
