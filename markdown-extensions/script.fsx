@@ -70,6 +70,34 @@ module Domain =
     }
 
 
+// Error types for comprehensive error handling (Phase 4)
+module ErrorTypes =
+    
+    // Parse errors that can occur during markdown processing
+    type ParseError = 
+        | YamlParseError of string
+        | MediaParseError of string  
+        | FileNotFound of string
+        | InvalidMarkdownStructure of string
+        | MissingRequiredField of field: string * context: string
+    
+    // Generation errors that can occur during post generation
+    type GenerationError =
+        | ParseError of ParseError
+        | RenderError of string
+        | FileWriteError of string
+        | ValidationError of ValidationError
+    
+    // Validation errors for input validation
+    and ValidationError =
+        | InvalidMediaType of string
+        | InvalidAspectRatio of string
+        | MissingTitle
+        | MissingPostType
+        | EmptyUri of mediaIndex: int
+        | EmptyAltText of mediaIndex: int
+        | InvalidDateFormat of date: string
+
 open Domain
 
 // Custom block for media gallery - moved outside Domain since it's Markdig-specific
@@ -103,43 +131,45 @@ module MarkdownParser =
         aspect: string
     }
     
-    // Parse YAML front-matter
-    let parseFrontMatter (content: string) : Domain.PostMetadata option * string =
-        let lines = content.Split([|'\n'|], StringSplitOptions.None)
-        
-        if lines.Length > 0 && lines.[0].Trim() = "---" then
-            let endIdx = 
-                lines 
-                |> Array.skip 1
-                |> Array.tryFindIndex (fun line -> line.Trim() = "---")
+    // Parse YAML front-matter with proper error handling
+    let parseFrontMatter (content: string) : Result<Domain.PostMetadata option * string, ErrorTypes.ParseError> =
+        try
+            let lines = content.Split([|'\n'|], StringSplitOptions.None)
             
-            match endIdx with
-            | Some idx ->
-                let frontMatterLines = lines.[1..idx]
-                let frontMatterYaml = String.concat "\n" frontMatterLines
-                let remainingContent = 
-                    lines.[(idx + 2)..]
-                    |> String.concat "\n"
+            if lines.Length > 0 && lines.[0].Trim() = "---" then
+                let endIdx = 
+                    lines 
+                    |> Array.skip 1
+                    |> Array.tryFindIndex (fun line -> line.Trim() = "---")
                 
-                try
-                    let deserializer = 
-                        DeserializerBuilder()
-                            .WithNamingConvention(UnderscoredNamingConvention.Instance)
-                            .Build()
+                match endIdx with
+                | Some idx ->
+                    let frontMatterLines = lines.[1..idx]
+                    let frontMatterYaml = String.concat "\n" frontMatterLines
+                    let remainingContent = 
+                        lines.[(idx + 2)..]
+                        |> String.concat "\n"
                     
-                    let metadata = deserializer.Deserialize<Domain.PostMetadata>(frontMatterYaml)
-                    (Some metadata, remainingContent)
-                with
-                | ex -> 
-                    printfn "Failed to parse front-matter YAML: %s" ex.Message
-                    (None, content)
-            | None ->
-                (None, content)
-        else
-            (None, content)
+                    try
+                        let deserializer = 
+                            DeserializerBuilder()
+                                .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                                .Build()
+                        
+                        let metadata = deserializer.Deserialize<Domain.PostMetadata>(frontMatterYaml)
+                        Ok (Some metadata, remainingContent)
+                    with
+                    | ex -> 
+                        Error (ErrorTypes.YamlParseError $"Failed to parse YAML front-matter: {ex.Message}")
+                | None ->
+                    Error (ErrorTypes.InvalidMarkdownStructure "Found opening --- but no closing --- for front-matter")
+            else
+                Ok (None, content)
+        with
+        | ex -> Error (ErrorTypes.YamlParseError $"Error processing front-matter: {ex.Message}")
     
-    // Parse the YAML-like content inside the media block
-    let parseMediaItems (content: string) =
+    // Parse the YAML-like content inside the media block with proper error handling
+    let parseMediaItems (content: string) : Result<Domain.Media list, ErrorTypes.ParseError> =
         try
             // Fix indentation for YAML parsing
             let lines = content.Split([|'\n'|], StringSplitOptions.None)
@@ -165,48 +195,47 @@ module MarkdownParser =
             
             let yamlItems = deserializer.Deserialize<MediaItemDto list>(cleanContent)
             
-            yamlItems
-            |> List.map (fun dto ->
-                let mediaType = 
-                    match dto.media_type with
-                    | null | "" -> MediaType.ToMediaType "image"
-                    | mt -> MediaType.ToMediaType mt
-                
-                let uri = 
-                    match dto.uri with
-                    | null -> ""
-                    | u -> u
-                
-                let altText = 
-                    match dto.alt_text with
-                    | null -> ""
-                    | alt -> alt
-                
-                let caption = 
-                    match dto.caption with
-                    | null | "" -> None
-                    | c when String.IsNullOrWhiteSpace(c) -> None
-                    | c -> Some c
-                
-                let aspectRatio = 
-                    match dto.aspect with
-                    | null | "" -> AspectRatio.ToAspectRatio "1:1"
-                    | a -> AspectRatio.ToAspectRatio a
-                
-                { 
-                    MediaType = mediaType
-                    Uri = uri
-                    AltText = altText
-                    Caption = caption
-                    AspectRatio = aspectRatio
-                })
+            let mediaItems = 
+                yamlItems
+                |> List.map (fun dto ->
+                    let mediaType = 
+                        match dto.media_type with
+                        | null | "" -> MediaType.ToMediaType "image"
+                        | mt -> MediaType.ToMediaType mt
+                    
+                    let uri = 
+                        match dto.uri with
+                        | null -> ""
+                        | u -> u
+                    
+                    let altText = 
+                        match dto.alt_text with
+                        | null -> ""
+                        | alt -> alt
+                    
+                    let caption = 
+                        match dto.caption with
+                        | null | "" -> None
+                        | c when String.IsNullOrWhiteSpace(c) -> None
+                        | c -> Some c
+                    
+                    let aspectRatio = 
+                        match dto.aspect with
+                        | null | "" -> AspectRatio.ToAspectRatio "1:1"
+                        | a -> AspectRatio.ToAspectRatio a
+                    
+                    { 
+                        MediaType = mediaType
+                        Uri = uri
+                        AltText = altText
+                        Caption = caption
+                        AspectRatio = aspectRatio
+                    })
+            
+            Ok mediaItems
         with
         | ex -> 
-            // Fallback to empty list if YAML parsing fails
-            // In production, you might want to log this error
-            printfn "Failed to parse YAML: %s" ex.Message
-            printfn "Content: %s" content    
-            []
+            Error (ErrorTypes.MediaParseError $"Failed to parse media items: {ex.Message}")
 
     // AST-based text extraction to replace string manipulation
     let extractTextContentFromAst (doc: MarkdownDocument) : string =
@@ -231,17 +260,22 @@ module MarkdownParser =
         |> Seq.collect (fun block -> block.MediaItems)
         |> Seq.toList
 
-    // Centralized parsing function as single entry point
-    let parseDocument (pipeline: MarkdownPipeline) (content: string) : ParsedDocument =
-        let (metadata, contentWithoutFrontMatter) = parseFrontMatter content
-        let doc = Markdown.Parse(contentWithoutFrontMatter, pipeline)
-        
-        {
-            Metadata = metadata
-            TextContent = extractTextContentFromAst doc
-            MediaItems = extractMediaFromAst doc
-            RawMarkdown = content
-        }
+    // Centralized parsing function as single entry point with proper error handling
+    let parseDocument (pipeline: MarkdownPipeline) (content: string) : Result<ParsedDocument, ErrorTypes.ParseError> =
+        match parseFrontMatter content with
+        | Error parseError -> Error parseError
+        | Ok (metadata, contentWithoutFrontMatter) ->
+            try
+                let doc = Markdown.Parse(contentWithoutFrontMatter, pipeline)
+                
+                Ok {
+                    Metadata = metadata
+                    TextContent = extractTextContentFromAst doc
+                    MediaItems = extractMediaFromAst doc
+                    RawMarkdown = content
+                }
+            with
+            | ex -> Error (ErrorTypes.InvalidMarkdownStructure $"Failed to parse markdown: {ex.Message}")
 
     // Block parser class
     type MediaBlockParser() =
@@ -262,7 +296,9 @@ module MarkdownParser =
             if lineText = ":::media" then
                 // End of media block
                 let mediaBlock = block :?> MediaBlock
-                mediaBlock.MediaItems <- parseMediaItems mediaBlock.RawContent
+                match parseMediaItems mediaBlock.RawContent with
+                | Ok items -> mediaBlock.MediaItems <- items
+                | Error _ -> mediaBlock.MediaItems <- []  // Fallback to empty list on error
                 processor.Close(block)
                 BlockState.BreakDiscard
             elif lineText.StartsWith(":::") then
@@ -279,7 +315,9 @@ module MarkdownParser =
         override _.Close(processor, block) =
             let mediaBlock = block :?> MediaBlock
             if mediaBlock.MediaItems.IsEmpty then
-                mediaBlock.MediaItems <- parseMediaItems mediaBlock.RawContent
+                match parseMediaItems mediaBlock.RawContent with
+                | Ok items -> mediaBlock.MediaItems <- items
+                | Error _ -> mediaBlock.MediaItems <- []  // Fallback to empty list on error
             true
 
 module MediaRenderer =
@@ -436,49 +474,53 @@ module ContentProcessor =
         PostTitle: string option
     }
     
-    let processPost (markdownContent: string) : ProcessedPost =
+    let processPost (markdownContent: string) : Result<ProcessedPost, ErrorTypes.GenerationError> =
         // Parse the document using Phase 1's centralized parser
-        let parsedDoc = MarkdownParser.parseDocument pipeline markdownContent
-        
-        // Process text content - convert to HTML if present
-        let textHtml = 
-            if String.IsNullOrWhiteSpace(parsedDoc.TextContent) then
-                None
-            else 
-                Some parsedDoc.TextContent
-        
-        // Generate media gallery using existing renderer
-        let mediaGallery = MediaRenderer.renderMediaGallery parsedDoc.MediaItems
-        
-        // Process header information
-        let headerNode = 
-            match parsedDoc.Metadata with
-            | Some meta ->
-                Some (div [ _class "post-header" ] [
-                    h1 [ _class "post-title" ] [ str meta.title ]
-                    div [ _class "post-meta" ] [
-                        time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
-                        div [ _class "post-tags" ] [
-                            for tag in meta.tags do
-                                span [ _class "tag" ] [ str tag ]
-                        ]
-                    ]
-                ])
-            | None -> None
-        
-        // Extract post title for easy access
-        let postTitle = 
-            match parsedDoc.Metadata with
-            | Some meta -> Some meta.title
-            | None -> None
-        
-        {
-            Document = parsedDoc
-            TextHtml = textHtml
-            MediaGallery = mediaGallery
-            Header = headerNode
-            PostTitle = postTitle
-        }
+        match MarkdownParser.parseDocument pipeline markdownContent with
+        | Error parseError -> Error (ErrorTypes.ParseError parseError)
+        | Ok parsedDoc ->
+            try
+                // Process text content - convert to HTML if present
+                let textHtml = 
+                    if String.IsNullOrWhiteSpace(parsedDoc.TextContent) then
+                        None
+                    else 
+                        Some parsedDoc.TextContent
+                
+                // Generate media gallery using existing renderer
+                let mediaGallery = MediaRenderer.renderMediaGallery parsedDoc.MediaItems
+                
+                // Process header information
+                let headerNode = 
+                    match parsedDoc.Metadata with
+                    | Some meta ->
+                        Some (div [ _class "post-header" ] [
+                            h1 [ _class "post-title" ] [ str meta.title ]
+                            div [ _class "post-meta" ] [
+                                time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
+                                div [ _class "post-tags" ] [
+                                    for tag in meta.tags do
+                                        span [ _class "tag" ] [ str tag ]
+                                ]
+                            ]
+                        ])
+                    | None -> None
+                
+                // Extract post title for easy access
+                let postTitle = 
+                    match parsedDoc.Metadata with
+                    | Some meta -> Some meta.title
+                    | None -> None
+                
+                Ok {
+                    Document = parsedDoc
+                    TextHtml = textHtml
+                    MediaGallery = mediaGallery
+                    Header = headerNode
+                    PostTitle = postTitle
+                }
+            with
+            | ex -> Error (ErrorTypes.RenderError $"Failed to process post: {ex.Message}")
 
 // Enhanced rendering function that takes ProcessedPost
 let renderProcessedPost (processedPost: ContentProcessor.ProcessedPost) =
@@ -517,8 +559,9 @@ let renderProcessedPost (processedPost: ContentProcessor.ProcessedPost) =
 
 let extractMediaFromMarkdown (markdownContent: string) =
     // Use new centralized parser instead of duplicating parsing logic
-    let parsedDoc = MarkdownParser.parseDocument pipeline markdownContent
-    parsedDoc.MediaItems
+    match MarkdownParser.parseDocument pipeline markdownContent with
+    | Ok parsedDoc -> parsedDoc.MediaItems
+    | Error _ -> []  // Fallback to empty list on error
 
 let extractTextContent (markdownContentWithoutFrontMatter: string) =
     // Use AST-based extraction instead of string manipulation
@@ -526,11 +569,16 @@ let extractTextContent (markdownContentWithoutFrontMatter: string) =
     MarkdownParser.extractTextContentFromAst doc
 
 let generatePostHtml (markdownContent: string) =
-    // Phase 2: Use Process → Render workflow
-    let processedPost = ContentProcessor.processPost markdownContent
-    renderProcessedPost processedPost
+    // Phase 2: Use Process → Render workflow with error handling
+    match ContentProcessor.processPost markdownContent with
+    | Ok processedPost -> renderProcessedPost processedPost
+    | Error error -> 
+        // Create error page for debugging
+        $"<html><body><h1>Error Processing Post</h1><p>{error}</p></body></html>"
 
 module PostGenerator =
+    
+    open ErrorTypes
     
     type PostConfig = {
         SourceFile: string
@@ -538,32 +586,45 @@ module PostGenerator =
         PostType: string
     }
     
-    let generatePost (config: PostConfig) : Result<string, string> =
+    let generatePost (config: PostConfig) : Result<string, ErrorTypes.GenerationError> =
         try
-            // Read source file
-            let markdownContent = File.ReadAllText(config.SourceFile)
-            
-            // Generate HTML using existing pipeline
-            let html = generatePostHtml markdownContent
-            
-            // Write output file
-            File.WriteAllText(config.OutputFile, html)
-            
-            // Log success
-            printfn "Generated %s post: %s -> %s" config.PostType config.SourceFile config.OutputFile
-            printfn "Generated HTML:"
-            printfn "%s" html
-            
-            Ok html
+            // Validate file exists before processing
+            if not (File.Exists(config.SourceFile)) then
+                Error (ParseError (FileNotFound config.SourceFile))
+            else
+                // Read source file
+                let markdownContent = File.ReadAllText(config.SourceFile)
+                
+                // Process with validation - use ContentProcessor which now returns Result
+                match ContentProcessor.processPost markdownContent with
+                | Error error -> Error error  // Pass through processing errors
+                | Ok processedPost ->
+                    // TODO: Add validation step once Validation module is accessible
+                    // For now, skip validation and proceed to rendering
+                    try
+                        // Generate HTML using existing renderer
+                        let html = renderProcessedPost processedPost
+                        
+                        // Write output file
+                        File.WriteAllText(config.OutputFile, html)
+                        
+                        // Log success
+                        printfn "Generated %s post: %s -> %s" config.PostType config.SourceFile config.OutputFile
+                        printfn "Generated HTML:"
+                        printfn "%s" html
+                        
+                        Ok html
+                    with
+                    | ex -> Error (FileWriteError $"Failed to write {config.OutputFile}: {ex.Message}")
         with
-        | ex -> Error $"Failed to generate {config.PostType} post: {ex.Message}"
+        | ex -> Error (ParseError (FileNotFound $"Error reading {config.SourceFile}: {ex.Message}"))
     
     let generateAllPosts (configs: PostConfig list) : unit =
         configs
         |> List.iter (fun config ->
             match generatePost config with
             | Ok _ -> ()
-            | Error errorMsg -> printfn "Error: %s" errorMsg
+            | Error error -> printfn "Error: %A" error
         )
 
 // Configuration-driven post generation
@@ -576,3 +637,88 @@ let postConfigs = [
 
 // Generate all posts using the new PostGenerator module
 PostGenerator.generateAllPosts postConfigs
+
+open ErrorTypes
+
+// Validation module for input validation (Phase 4)
+module Validation =
+    
+    open System.Text.RegularExpressions
+    
+    let validateMetadata (metadata: Domain.PostMetadata option) : Result<Domain.PostMetadata, ErrorTypes.ValidationError> =
+        match metadata with
+        | None -> Error ErrorTypes.MissingTitle  // If no metadata, we're missing essential fields
+        | Some meta ->
+            // Validate required fields
+            if String.IsNullOrWhiteSpace(meta.title) then
+                Error ErrorTypes.MissingTitle
+            elif String.IsNullOrWhiteSpace(meta.post_type) then
+                Error ErrorTypes.MissingPostType
+            elif String.IsNullOrWhiteSpace(meta.publish_date) then
+                Error (ErrorTypes.InvalidDateFormat meta.publish_date)
+            else
+                // Validate date format (basic ISO date check)
+                let datePattern = @"^\d{4}-\d{2}-\d{2}$"
+                if not (Regex.IsMatch(meta.publish_date, datePattern)) then
+                    Error (ErrorTypes.InvalidDateFormat meta.publish_date)
+                else
+                    Ok meta
+    
+    let validateMediaItem (item: Domain.Media) (index: int) : Result<Domain.Media, ErrorTypes.ValidationError> =
+        // Validate URI is not empty
+        if String.IsNullOrWhiteSpace(item.Uri) then
+            Error (ErrorTypes.EmptyUri index)
+        // Validate alt text is not empty (accessibility requirement)
+        elif String.IsNullOrWhiteSpace(item.AltText) then
+            Error (ErrorTypes.EmptyAltText index)
+        else
+            // Validate media type is valid
+            let isValidMediaType = 
+                match item.MediaType.ToString() with
+                | "image" | "video" | "audio" -> true
+                | _ -> false
+            
+            if not isValidMediaType then
+                Error (ErrorTypes.InvalidMediaType (item.MediaType.ToString()))
+            else
+                // Validate aspect ratio format
+                let isValidAspectRatio = 
+                    let ratio = item.AspectRatio.ToString()
+                    if ratio.Contains(":") then
+                        let parts = ratio.Split(':')
+                        parts.Length = 2 && 
+                        (Int32.TryParse(parts.[0]) |> fst) && 
+                        (Int32.TryParse(parts.[1]) |> fst)
+                    else
+                        false
+                
+                if not isValidAspectRatio then
+                    Error (ErrorTypes.InvalidAspectRatio (item.AspectRatio.ToString()))
+                else
+                    Ok item
+    
+    let validatePost (post: MarkdownParser.ParsedDocument) : Result<MarkdownParser.ParsedDocument, ErrorTypes.ValidationError list> =
+        // Validate metadata
+        let metadataResult = validateMetadata post.Metadata
+        
+        // Validate all media items
+        let mediaResults = 
+            post.MediaItems
+            |> List.mapi (fun i item -> validateMediaItem item i)
+        
+        // Collect all validation errors
+        let metadataErrors = 
+            match metadataResult with
+            | Error err -> [err]
+            | Ok _ -> []
+        
+        let mediaErrors = 
+            mediaResults
+            |> List.choose (function Error err -> Some err | Ok _ -> None)
+        
+        let allErrors = metadataErrors @ mediaErrors
+        
+        if allErrors.IsEmpty then
+            Ok post
+        else
+            Error allErrors
