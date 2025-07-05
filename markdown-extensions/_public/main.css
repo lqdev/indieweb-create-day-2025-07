@@ -15,6 +15,7 @@ body {
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
+  background: inherit;
 }
 
 /* Hide the YAML frontmatter that's showing as h2 */
