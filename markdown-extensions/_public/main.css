@@ -1,0 +1,267 @@
+/* Basic body and page styling */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  color: #1a1a1a;
+}
+
+/* Feed container */
+.feed-container {
+  max-width: 590px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Hide the YAML frontmatter that's showing as h2 */
+h2 {
+  display: none;
+}
+
+/* Style the horizontal rule */
+hr {
+  display: none;
+}
+
+/* Feed Post Card Container */
+.post-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 24px auto;
+  max-width: 540px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.post-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Post Content */
+.post-content {
+  padding: 20px;
+}
+
+.post-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+}
+
+/* Media Gallery - Flexible masonry-style layout */
+.media-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+/* On larger screens, use a more flexible grid */
+@media (min-width: 640px) {
+  .media-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: start; /* This prevents stretching */
+  }
+}
+
+/* Media items - properly handle aspect ratios with object-fit */
+.media-item {
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* The aspect-ratio will be set inline from your F# code */
+}
+
+.media-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.media-item img,
+.media-item video {
+  width: 100%;
+  height: 0;
+  flex: 1; /* Take up the available space in the flex container */
+  object-fit: cover; /* Crop image to fit the aspect ratio */
+  display: block;
+  border-radius: 8px 8px 0 0;
+}
+
+.media-item audio {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px 8px 0 0;
+  flex-shrink: 0;
+}
+
+/* Captions - ensure they're visible and don't grow */
+.media-caption {
+  padding: 8px 12px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.3;
+  color: #666;
+  background: white;
+  border-radius: 0 0 8px 8px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0; /* Don't let caption shrink */
+}
+
+/* Alternative: Pinterest-style masonry for better browser support */
+@supports (grid-template-rows: masonry) {
+  @media (min-width: 640px) {
+    .media-gallery {
+      grid-template-rows: masonry;
+    }
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .feed-container {
+    padding: 0;
+  }
+  
+  .post-card {
+    margin: 0 0 20px 0;
+    border-radius: 0;
+    box-shadow: none;
+    border-bottom: 8px solid #f5f5f5;
+  }
+  
+  .post-content {
+    padding: 16px;
+  }
+  
+  .media-gallery {
+    margin: 16px 0;
+    gap: 8px;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0f1419;
+    color: #ffffff;
+  }
+  
+  .feed-container {
+    background-color: #0f1419;
+  }
+  
+  .post-card {
+    background: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .media-item {
+    background: #2d3748;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .media-caption {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+  
+  .post-text {
+    color: #ffffff;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+  }
+  
+  .feed-container {
+    max-width: none;
+    padding: 0;
+  }
+  
+  .post-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+    margin: 0 0 20px 0;
+  }
+  
+  .media-gallery {
+    gap: 8px;
+  }
+  
+  .media-item {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+  }
+}
+
+/* Loading states */
+.media-item.loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Accessibility improvements */
+.media-item:focus-within {
+  outline: 2px solid #4d9de0;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-item,
+  .post-card {
+    transition: none;
+  }
+  
+  .media-item.loading {
+    animation: none;
+    background: #f0f0f0;
+  }
+}
+
+/* Typography improvements */
+p {
+  margin: 0 0 1em 0;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+/* Focus improvements for keyboard navigation */
+.post-card:focus-within {
+  outline: 2px solid #4d9de0;
+  outline-offset: 2px;
+}
+
+/* Ensure images are accessible */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Handle long URLs or text gracefully */
+.media-caption {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}

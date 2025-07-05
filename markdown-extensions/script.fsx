@@ -208,7 +208,21 @@ module MediaRenderer =
         | Tall x -> ratioParts (x.ToString())
         | Custom ratio -> ratioParts (ratio.ToString())
 
-    let private renderMediaItem (item: Domain.Media) =
+    let private renderLayout (mediaGallery: XmlNode) =
+        html [] [
+            head [] [
+                link [ _rel "stylesheet"; _href "main.css" ]
+            ]
+            body [] [
+                div [ _class "feed-container" ] [
+                    article [_class "post-card"] [
+                        mediaGallery
+                    ]
+                ]
+            ]
+        ]
+
+    let private renderMediaItem (item: Media) =
         let mediaElement = 
             match item.MediaType with
             | Image _ ->
@@ -231,19 +245,19 @@ module MediaRenderer =
             _class "media-item"
             _style $"aspect-ratio: {formatCssAspectRatio item.AspectRatio}"
         ] (mediaElement :: captionElement)
-    
-    let private renderMediaGallery (mediaItems: Domain.Media list) =
+
+    let private renderMediaGallery (mediaItems: Media list) =
         div [ _class "media-gallery" ] (
             mediaItems |> List.map renderMediaItem
         )
-    
+
     // HTML renderer class
     type MediaRenderer() =
         inherit HtmlObjectRenderer<MediaBlock>()
         
         override _.Write(renderer: HtmlRenderer, mediaBlock: MediaBlock) =
             let viewEngine = renderMediaGallery mediaBlock.MediaItems
-            let html = RenderView.AsString.htmlNode viewEngine
+            let html = RenderView.AsString.htmlNode (renderLayout viewEngine)
             renderer.Write(html) |> ignore
 
 module MediaExtension =
