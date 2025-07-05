@@ -285,12 +285,43 @@ let pipeline =
         .Use<MediaExtension>()
         .Build()
 
-let md = File.ReadAllText(Path.Combine("_src","image.md"))
 
-let html = Markdown.ToHtml(md, pipeline)
+let generateImagePost () = 
 
-printfn "Generated HTML:"
-printfn "%s" html
+    let md = File.ReadAllText(Path.Combine("_src","image.md"))
 
-let outputPath = Path.Combine("_public", "image.html")
-File.WriteAllText(outputPath, html)
+    let html = Markdown.ToHtml(md, pipeline)
+
+    printfn "Generated HTML:"
+    printfn "%s" html
+
+    let outputPath = Path.Combine("_public", "image.html")
+    File.WriteAllText(outputPath, html)
+
+let generateVideoPost () = 
+
+    let md = File.ReadAllText(Path.Combine("_src","video.md"))
+
+    let html = Markdown.ToHtml(md, pipeline)
+
+    printfn "Generated HTML:"
+    printfn "%s" html
+
+    let outputPath = Path.Combine("_public", "video.html")
+    File.WriteAllText(outputPath, html)
+
+let generateAudioPost () = 
+
+    let md = File.ReadAllText(Path.Combine("_src","audio.md"))
+
+    let html = Markdown.ToHtml(md, pipeline)
+
+    printfn "Generated HTML:"
+    printfn "%s" html
+
+    let outputPath = Path.Combine("_public", "audio.html")
+    File.WriteAllText(outputPath, html)
+
+generateImagePost ()
+generateVideoPost ()
+generateAudioPost ()

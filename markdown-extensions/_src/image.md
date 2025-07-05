@@ -1,6 +1,6 @@
 ---
 post_type: media
-title: My media post
+title: My image post
 publish_date: "2025-07-05 11:47 -05:00"
 tags: ["vacation","summer","roadtrip","travel"]
 ---
