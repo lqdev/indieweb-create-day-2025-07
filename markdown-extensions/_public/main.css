@@ -248,8 +248,17 @@ hr {
     0 0 20px rgba(106, 176, 131, 0.1);
 }
 
+/* Specific styling for image and video items */
+.media-item:has(img),
+.media-item:has(video) {
+  padding: 0;
+}
+
 .media-item img,
 .media-item video {
+  margin: 0;
+  padding: 0;
+  flex: 1;
   width: 100%;
   height: auto;
   object-fit: cover;
