@@ -35,7 +35,7 @@ This document outlines the systematic project development workflow for the indie
 
 - **Backlog**: `[ ]` - Ideas and planned work
 - **Active**: `[>]` - Currently in progress with project plan
-- **Complete**: `[x]` - Finished and moved to archive
+- **Complete**: Removed from backlog and moved to archive
 - **Archive**: Projects moved to `projects/archive/` with completion summary
 
 ### Documentation Hierarchy
@@ -103,7 +103,7 @@ This document outlines the systematic project development workflow for the indie
    - Complete final summary in daily log
    - Update project plan with completion status and lessons learned
    - Move project plan from `active/` to `archive/`
-   - Update backlog: `[>]` → `[x]`
+   - Remove completed project from `backlog.md`
    - Add entry to `changelog.md` with project summary
 
 ## Technical Implementation Guidelines
@@ -244,7 +244,7 @@ When adding entries to `changelog.md`, use this template:
 - [ ] All changes documented in daily logs
 - [ ] Project plan updated with completion status
 - [ ] Lessons learned documented for future projects
-- [ ] Backlog item marked complete and project archived
+- [ ] Project removed from backlog and moved to archive
 - [ ] Changelog updated with project summary
 - [ ] Explicit completion declaration made
 

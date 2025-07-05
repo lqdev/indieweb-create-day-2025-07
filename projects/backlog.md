@@ -1,8 +1,5 @@
 # Project Backlog
 
-## Active Projects
-- [x] **Project Management Workflow Enhancement** - Improve project organization and tracking
-
 ## Features to Implement
 
 ### Content Management
