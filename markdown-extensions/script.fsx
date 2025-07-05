@@ -208,7 +208,7 @@ module MediaRenderer =
         | Tall x -> ratioParts (x.ToString())
         | Custom ratio -> ratioParts (ratio.ToString())
 
-    let private renderLayout (mediaGallery: XmlNode) =
+    let renderLayout (postContent: XmlNode option) (mediaGallery: XmlNode) =
         html [] [
             head [] [
                 link [ _rel "stylesheet"; _href "main.css" ]
@@ -216,7 +216,13 @@ module MediaRenderer =
             body [] [
                 div [ _class "feed-container" ] [
                     article [_class "post-card"] [
-                        mediaGallery
+                        match postContent with
+                        | Some content -> 
+                            div [ _class "post-content" ] [
+                                content
+                                mediaGallery
+                            ]
+                        | None -> mediaGallery
                     ]
                 ]
             ]
@@ -252,7 +258,7 @@ module MediaRenderer =
         
         div containerAttributes (mediaElement :: captionElement)
 
-    let private renderMediaGallery (mediaItems: Media list) =
+    let renderMediaGallery (mediaItems: Media list) =
         div [ _class "media-gallery" ] (
             mediaItems |> List.map renderMediaItem
         )
@@ -262,9 +268,9 @@ module MediaRenderer =
         inherit HtmlObjectRenderer<MediaBlock>()
         
         override _.Write(renderer: HtmlRenderer, mediaBlock: MediaBlock) =
-            let viewEngine = renderMediaGallery mediaBlock.MediaItems
-            let html = RenderView.AsString.htmlNode (renderLayout viewEngine)
-            renderer.Write(html) |> ignore
+            let mediaGallery = renderMediaGallery mediaBlock.MediaItems
+            let html = RenderView.AsString.htmlNode (renderLayout None mediaGallery)
+            renderer.Write(html: string) |> ignore
 
 module MediaExtension =
     
@@ -284,17 +290,97 @@ module MediaExtension =
 
 open System.IO
 open MediaExtension
+open Giraffe.ViewEngine
 
 let pipeline = 
     MarkdownPipelineBuilder()
         .Use<MediaExtension>()
         .Build()
 
+let extractMediaFromMarkdown (markdownContent: string) =
+    // Parse the markdown to extract the media content
+    let doc = Markdown.Parse(markdownContent, pipeline)
+    let mediaBlocks = 
+        doc.Descendants<MediaBlock>()
+        |> Seq.toList
+    
+    // Get all media items from all media blocks
+    let allMediaItems = 
+        mediaBlocks
+        |> List.collect (fun block -> block.MediaItems)
+    
+    allMediaItems
+
+let extractTextContent (markdownContent: string) =
+    // Remove YAML frontmatter
+    let lines = markdownContent.Split([|'\n'|], StringSplitOptions.None)
+    let contentStartIdx = 
+        if lines.Length > 0 && lines.[0].Trim() = "---" then
+            lines 
+            |> Array.skip 1
+            |> Array.findIndex (fun line -> line.Trim() = "---")
+            |> (+) 2  // Skip both "---" lines
+        else 0
+    
+    let contentLines = lines.[contentStartIdx..]
+    
+    // Remove media blocks
+    let filteredLines = 
+        contentLines
+        |> Array.fold (fun (acc, inMediaBlock) line ->
+            let trimmed = line.Trim()
+            if trimmed = ":::media" then
+                (acc, not inMediaBlock)
+            elif inMediaBlock then
+                (acc, inMediaBlock)
+            else
+                (line :: acc, inMediaBlock)
+        ) ([], false)
+        |> fst
+        |> List.rev
+        |> List.filter (fun line -> not (String.IsNullOrWhiteSpace(line)))
+    
+    String.concat "\n" filteredLines
+
+let generatePostHtml (markdownContent: string) =
+    let textContent = extractTextContent markdownContent
+    let mediaItems = extractMediaFromMarkdown markdownContent
+    
+    // Create HTML structure manually to avoid ViewEngine complications
+    let textContentHtml = 
+        if String.IsNullOrWhiteSpace(textContent) then ""
+        else 
+            let htmlString = Markdown.ToHtml(textContent)
+            $"""<div class="post-text">{htmlString}</div>"""
+    
+    // Generate the media gallery HTML
+    let mediaGallery = MediaRenderer.renderMediaGallery mediaItems
+    let mediaHtml = RenderView.AsString.htmlNode mediaGallery
+    
+    // Generate the complete HTML structure
+    let fullHtml = $"""
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div class="feed-container">
+        <article class="post-card">
+            <div class="post-content">
+                {textContentHtml}
+                {mediaHtml}
+            </div>
+        </article>
+    </div>
+</body>
+</html>"""
+    
+    fullHtml
+
 let generateImagePost () = 
-
     let md = File.ReadAllText(Path.Combine("_src","image.md"))
-
-    let html = Markdown.ToHtml(md, pipeline)
+    let html = generatePostHtml md
 
     printfn "Generated HTML:"
     printfn "%s" html
@@ -303,10 +389,8 @@ let generateImagePost () =
     File.WriteAllText(outputPath, html)
 
 let generateVideoPost () = 
-
     let md = File.ReadAllText(Path.Combine("_src","video.md"))
-
-    let html = Markdown.ToHtml(md, pipeline)
+    let html = generatePostHtml md
 
     printfn "Generated HTML:"
     printfn "%s" html
@@ -315,10 +399,8 @@ let generateVideoPost () =
     File.WriteAllText(outputPath, html)
 
 let generateAudioPost () = 
-
     let md = File.ReadAllText(Path.Combine("_src","audio.md"))
-
-    let html = Markdown.ToHtml(md, pipeline)
+    let html = generatePostHtml md
 
     printfn "Generated HTML:"
     printfn "%s" html
@@ -328,8 +410,7 @@ let generateAudioPost () =
 
 let generateMixedPost () = 
     let md = File.ReadAllText(Path.Combine("_src","mixed.md"))
-
-    let html = Markdown.ToHtml(md, pipeline)
+    let html = generatePostHtml md
 
     printfn "Generated HTML:"
     printfn "%s" html
