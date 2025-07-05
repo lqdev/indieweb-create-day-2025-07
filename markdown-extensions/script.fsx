@@ -530,47 +530,49 @@ let generatePostHtml (markdownContent: string) =
     let processedPost = ContentProcessor.processPost markdownContent
     renderProcessedPost processedPost
 
-let generateImagePost () = 
-    let md = File.ReadAllText(Path.Combine("_src","image.md"))
-    let html = generatePostHtml md
+module PostGenerator =
+    
+    type PostConfig = {
+        SourceFile: string
+        OutputFile: string
+        PostType: string
+    }
+    
+    let generatePost (config: PostConfig) : Result<string, string> =
+        try
+            // Read source file
+            let markdownContent = File.ReadAllText(config.SourceFile)
+            
+            // Generate HTML using existing pipeline
+            let html = generatePostHtml markdownContent
+            
+            // Write output file
+            File.WriteAllText(config.OutputFile, html)
+            
+            // Log success
+            printfn "Generated %s post: %s -> %s" config.PostType config.SourceFile config.OutputFile
+            printfn "Generated HTML:"
+            printfn "%s" html
+            
+            Ok html
+        with
+        | ex -> Error $"Failed to generate {config.PostType} post: {ex.Message}"
+    
+    let generateAllPosts (configs: PostConfig list) : unit =
+        configs
+        |> List.iter (fun config ->
+            match generatePost config with
+            | Ok _ -> ()
+            | Error errorMsg -> printfn "Error: %s" errorMsg
+        )
 
-    printfn "Generated HTML:"
-    printfn "%s" html
+// Configuration-driven post generation
+let postConfigs = [
+    { PostGenerator.SourceFile = Path.Combine("_src", "image.md"); PostGenerator.OutputFile = Path.Combine("_public", "image.html"); PostGenerator.PostType = "image" }
+    { PostGenerator.SourceFile = Path.Combine("_src", "video.md"); PostGenerator.OutputFile = Path.Combine("_public", "video.html"); PostGenerator.PostType = "video" }
+    { PostGenerator.SourceFile = Path.Combine("_src", "audio.md"); PostGenerator.OutputFile = Path.Combine("_public", "audio.html"); PostGenerator.PostType = "audio" }
+    { PostGenerator.SourceFile = Path.Combine("_src", "mixed.md"); PostGenerator.OutputFile = Path.Combine("_public", "mixed.html"); PostGenerator.PostType = "mixed" }
+]
 
-    let outputPath = Path.Combine("_public", "image.html")
-    File.WriteAllText(outputPath, html)
-
-let generateVideoPost () = 
-    let md = File.ReadAllText(Path.Combine("_src","video.md"))
-    let html = generatePostHtml md
-
-    printfn "Generated HTML:"
-    printfn "%s" html
-
-    let outputPath = Path.Combine("_public", "video.html")
-    File.WriteAllText(outputPath, html)
-
-let generateAudioPost () = 
-    let md = File.ReadAllText(Path.Combine("_src","audio.md"))
-    let html = generatePostHtml md
-
-    printfn "Generated HTML:"
-    printfn "%s" html
-
-    let outputPath = Path.Combine("_public", "audio.html")
-    File.WriteAllText(outputPath, html)
-
-let generateMixedPost () = 
-    let md = File.ReadAllText(Path.Combine("_src","mixed.md"))
-    let html = generatePostHtml md
-
-    printfn "Generated HTML:"
-    printfn "%s" html
-
-    let outputPath = Path.Combine("_public", "mixed.html")
-    File.WriteAllText(outputPath, html)
-
-generateImagePost ()
-generateVideoPost ()
-generateAudioPost ()
-generateMixedPost ()
+// Generate all posts using the new PostGenerator module
+PostGenerator.generateAllPosts postConfigs
