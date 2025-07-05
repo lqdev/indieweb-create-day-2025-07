@@ -9,7 +9,7 @@ Such a fun trip!
 
 :::media
 - media_type: image
-  uri:  https://unsplash.com/photos/yellow-volkswagen-van-on-road-A5rCN8626Ck
+  uri:  https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1121&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D
   caption: Hot day, but worth it!
   alt_text: A van driving throug the desert
   aspect: 3:2

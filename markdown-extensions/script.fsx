@@ -81,13 +81,22 @@ module MarkdownParser =
     // Parse the YAML-like content inside the media block
     let parseMediaItems (content: string) =
         try
-
-            // Clean up the content - remove empty lines and trim
-            let cleanContent = 
-                content.Split([|'\n'; '\r'|], StringSplitOptions.RemoveEmptyEntries)
-                |> Array.map (fun line -> line.Trim())
+            // Fix indentation for YAML parsing
+            let lines = content.Split([|'\n'|], StringSplitOptions.None)
+            let fixedLines = 
+                lines
                 |> Array.filter (fun line -> not (String.IsNullOrWhiteSpace(line)))
-                |> String.concat "\n"
+                |> Array.map (fun line ->
+                    let trimmed = line.Trim()
+                    if trimmed.StartsWith("- ") then
+                        trimmed  // Keep list items at the beginning
+                    elif trimmed.Contains(":") && not (trimmed.StartsWith("- ")) then
+                        "  " + trimmed  // Indent properties with 2 spaces
+                    else
+                        trimmed
+                )
+            
+            let cleanContent = String.concat "\n" fixedLines
 
             let deserializer = 
                 DeserializerBuilder()
@@ -166,9 +175,9 @@ module MarkdownParser =
                 processor.Close(block)
                 BlockState.Break
             else
-                // Continue collecting content
+                // Continue collecting content - preserve original indentation
                 let mediaBlock = block :?> MediaBlock
-                let originalLine = processor.Line.Text.Substring(processor.Line.Start, processor.Line.Length)
+                let originalLine = processor.Line.ToString()
                 mediaBlock.RawContent <- mediaBlock.RawContent + originalLine + "\n"
                 BlockState.Continue
                 
@@ -247,6 +256,12 @@ let pipeline =
         .Use<MediaExtension>()
         .Build()
 
-let md = File.ReadAllText(Path.Combine("markdown-extensions","_src","image.md"))
+let md = File.ReadAllText(Path.Combine("_src","image.md"))
 
 let html = Markdown.ToHtml(md, pipeline)
+
+printfn "Generated HTML:"
+printfn "%s" html
+
+let outputPath = Path.Combine("_public", "image.html")
+File.WriteAllText(outputPath, html)
