@@ -241,10 +241,16 @@ module MediaRenderer =
             | Some caption -> [ p [ _class "media-caption" ] [ str caption ] ]
             | None -> []
         
-        div [ 
-            _class "media-item"
-            _style $"aspect-ratio: {formatCssAspectRatio item.AspectRatio}"
-        ] (mediaElement :: captionElement)
+        // Audio elements should not have aspect ratio constraints
+        let containerAttributes = 
+            match item.MediaType with
+            | Audio _ -> [ _class "media-item audio-item" ]
+            | _ -> [ 
+                _class "media-item"
+                _style $"aspect-ratio: {formatCssAspectRatio item.AspectRatio}"
+            ]
+        
+        div containerAttributes (mediaElement :: captionElement)
 
     let private renderMediaGallery (mediaItems: Media list) =
         div [ _class "media-gallery" ] (
@@ -276,7 +282,6 @@ module MediaExtension =
                 let htmlRenderer = MediaRenderer()
                 renderer.ObjectRenderers.Add(htmlRenderer)
 
-
 open System.IO
 open MediaExtension
 
@@ -284,7 +289,6 @@ let pipeline =
     MarkdownPipelineBuilder()
         .Use<MediaExtension>()
         .Build()
-
 
 let generateImagePost () = 
 

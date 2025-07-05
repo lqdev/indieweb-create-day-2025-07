@@ -104,6 +104,17 @@ hr {
   flex-shrink: 0;
 }
 
+/* Audio-specific styling */
+.audio-item {
+  /* Remove aspect ratio constraints for audio players */
+  aspect-ratio: unset !important;
+}
+
+.audio-item audio {
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
 /* Captions - ensure they're visible and don't grow */
 .media-caption {
   padding: 8px 12px;
