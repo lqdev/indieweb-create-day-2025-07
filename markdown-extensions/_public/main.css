@@ -27,6 +27,25 @@ hr {
   display: none;
 }
 
+/* Desert ambiance - Subtle animations */
+@keyframes desert-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.post-card::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, transparent, rgba(106, 176, 131, 0.1), transparent);
+  border-radius: 12px;
+  z-index: -1;
+  animation: desert-glow 4s ease-in-out infinite;
+}
+
 /* Post Header - Coast to Coast FM Station ID */
 .post-header {
   padding: 24px 24px 0 24px;
@@ -138,16 +157,33 @@ hr {
   transform: translateY(-2px);
 }
 
-/* Post Content */
+/* Post Content - Radio Transmission */
 .post-content {
-  padding: 20px;
+  padding: 24px;
 }
 
 .post-text {
-  font-size: 15px;
-  line-height: 1.5;
-  color: #1a1a1a;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #d4c5b0;
+  margin-bottom: 24px;
+  font-family: 'Courier New', monospace;
+}
+
+.post-text p {
   margin: 0 0 16px 0;
+}
+
+.post-text a {
+  color: #6ab083;
+  text-decoration: none;
+  border-bottom: 1px dotted #6ab083;
+  transition: all 0.3s ease;
+}
+
+.post-text a:hover {
+  color: #7bc49a;
+  text-shadow: 0 0 5px rgba(106, 176, 131, 0.4);
 }
 
 .post-text p {
@@ -158,11 +194,11 @@ hr {
   margin-bottom: 0;
 }
 
-/* Media Gallery - Flexible masonry-style layout */
+/* Media Gallery - Desert Transmission Signals */
 .media-gallery {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   margin: 20px 0;
 }
 
@@ -171,67 +207,96 @@ hr {
   .media-gallery {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-    align-items: start; /* This prevents stretching */
+    gap: 20px;
+    align-items: start;
   }
 }
 
-/* Media items - properly handle aspect ratios with object-fit */
+/* Media items - Mysterious transmission windows */
 .media-item {
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #1a1327, #0f0a1a);
+  border: 1px solid #3a5063;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(106, 176, 131, 0.1);
+  transition: all 0.3s ease;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* The aspect-ratio will be set inline from your F# code */
+  position: relative;
+}
+
+.media-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #6ab083, transparent);
+  opacity: 0.3;
+  z-index: 1;
 }
 
 .media-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(106, 176, 131, 0.2),
+    0 0 20px rgba(106, 176, 131, 0.1);
 }
 
 .media-item img,
 .media-item video {
   width: 100%;
   height: 0;
-  flex: 1; /* Take up the available space in the flex container */
-  object-fit: cover; /* Crop image to fit the aspect ratio */
+  flex: 1;
+  object-fit: cover;
   display: block;
-  border-radius: 8px 8px 0 0;
+  border-radius: 12px 12px 0 0;
+  filter: contrast(1.1) brightness(0.9) hue-rotate(10deg);
+  transition: all 0.3s ease;
+}
+
+.media-item:hover img,
+.media-item:hover video {
+  filter: contrast(1.2) brightness(1.0) hue-rotate(15deg);
 }
 
 .media-item audio {
   width: 100%;
-  padding: 12px;
-  border-radius: 8px 8px 0 0;
+  padding: 16px;
+  border-radius: 12px 12px 0 0;
   flex-shrink: 0;
+  background: rgba(26, 19, 39, 0.8);
 }
 
-/* Audio-specific styling */
+/* Audio-specific styling - Radio equipment */
 .audio-item {
-  /* Remove aspect ratio constraints for audio players */
   aspect-ratio: unset !important;
 }
 
 .audio-item audio {
-  background: #f8f9fa;
+  background: linear-gradient(145deg, #2d1b4e, #1a1327);
+  border: 1px solid #3a5063;
   border-radius: 8px;
+  filter: hue-rotate(20deg);
 }
 
-/* Captions - ensure they're visible and don't grow */
+/* Captions - Transmission logs */
 .media-caption {
-  padding: 8px 12px;
+  padding: 12px 16px;
   margin: 0;
-  font-size: 13px;
-  line-height: 1.3;
-  color: #666;
-  background: white;
-  border-radius: 0 0 8px 8px;
-  border-top: 1px solid #f0f0f0;
-  flex-shrink: 0; /* Don't let caption shrink */
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8b9dc3;
+  background: linear-gradient(145deg, #0f0a1a, #1a1327);
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid #3a5063;
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 5px rgba(139, 157, 195, 0.2);
 }
 
 /* Alternative: Pinterest-style masonry for better browser support */
