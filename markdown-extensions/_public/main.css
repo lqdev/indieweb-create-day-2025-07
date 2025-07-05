@@ -254,10 +254,15 @@ hr {
   padding-bottom: 8px;
 }
 
-/* Specific styling for image and video items */
-.media-item:has(img),
-.media-item:has(video) {
+/* Ensure image containers maintain proper overflow but allow caption space */
+.media-item:has(img) {
+  overflow: visible;
   padding: 0;
+}
+
+/* Specific styling for image and video items */
+.media-item:has(video) {
+  padding: 0 0 8px 0;
 }
 
 .media-item img,
@@ -332,6 +337,8 @@ hr {
   flex-shrink: 0;
   font-family: 'Courier New', monospace;
   text-shadow: 0 0 5px rgba(139, 157, 195, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 /* Alternative: Pinterest-style masonry for better browser support */
