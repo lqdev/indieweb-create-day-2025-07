@@ -398,6 +398,22 @@ module MediaExtension =
                 renderer.ObjectRenderers.Add(htmlRenderer)
 
 open System.IO
+    
+    open MarkdownParser
+    open MediaRenderer
+
+    // Extension class
+    type MediaExtension() =
+        interface IMarkdownExtension with
+            member _.Setup(pipeline) =
+                let parser = MediaBlockParser()
+                pipeline.BlockParsers.Insert(0, parser)
+                
+            member _.Setup(pipeline, renderer) =
+                let htmlRenderer = MediaRenderer()
+                renderer.ObjectRenderers.Add(htmlRenderer)
+
+open System.IO
 open MediaExtension
 open Giraffe.ViewEngine
 
@@ -405,6 +421,99 @@ let pipeline =
     MarkdownPipelineBuilder()
         .Use<MediaExtension>()
         .Build()
+
+// Add ContentProcessor implementation now that pipeline is available
+module ContentProcessor =
+    
+    open Giraffe.ViewEngine
+    open Domain
+    
+    type ProcessedPost = {
+        Document: MarkdownParser.ParsedDocument
+        TextHtml: string option
+        MediaGallery: XmlNode
+        Header: XmlNode option
+        PostTitle: string option
+    }
+    
+    let processPost (markdownContent: string) : ProcessedPost =
+        // Parse the document using Phase 1's centralized parser
+        let parsedDoc = MarkdownParser.parseDocument pipeline markdownContent
+        
+        // Process text content - convert to HTML if present
+        let textHtml = 
+            if String.IsNullOrWhiteSpace(parsedDoc.TextContent) then
+                None
+            else 
+                Some parsedDoc.TextContent
+        
+        // Generate media gallery using existing renderer
+        let mediaGallery = MediaRenderer.renderMediaGallery parsedDoc.MediaItems
+        
+        // Process header information
+        let headerNode = 
+            match parsedDoc.Metadata with
+            | Some meta ->
+                Some (div [ _class "post-header" ] [
+                    h1 [ _class "post-title" ] [ str meta.title ]
+                    div [ _class "post-meta" ] [
+                        time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
+                        div [ _class "post-tags" ] [
+                            for tag in meta.tags do
+                                span [ _class "tag" ] [ str tag ]
+                        ]
+                    ]
+                ])
+            | None -> None
+        
+        // Extract post title for easy access
+        let postTitle = 
+            match parsedDoc.Metadata with
+            | Some meta -> Some meta.title
+            | None -> None
+        
+        {
+            Document = parsedDoc
+            TextHtml = textHtml
+            MediaGallery = mediaGallery
+            Header = headerNode
+            PostTitle = postTitle
+        }
+
+// Enhanced rendering function that takes ProcessedPost
+let renderProcessedPost (processedPost: ContentProcessor.ProcessedPost) =
+    // Create text content node if present
+    let textContentNode = 
+        match processedPost.TextHtml with
+        | Some html -> Some (div [ _class "post-text" ] [ rawText html ])
+        | None -> None
+    
+    // Create content nodes list
+    let contentNodes = [
+        match textContentNode with
+        | Some node -> yield node
+        | None -> ()
+        yield processedPost.MediaGallery
+    ]
+    
+    // Generate complete HTML page using Giraffe ViewEngine
+    let fullPage = html [] [
+        head [] [
+            link [ _rel "stylesheet"; _href "main.css" ]
+        ]
+        body [] [
+            div [ _class "feed-container" ] [
+                article [ _class "post-card" ] [
+                    match processedPost.Header with
+                    | Some header -> yield header
+                    | None -> ()
+                    yield div [ _class "post-content" ] contentNodes
+                ]
+            ]
+        ]
+    ]
+    
+    RenderView.AsString.htmlDocument fullPage
 
 let extractMediaFromMarkdown (markdownContent: string) =
     // Use new centralized parser instead of duplicating parsing logic
@@ -417,62 +526,9 @@ let extractTextContent (markdownContentWithoutFrontMatter: string) =
     MarkdownParser.extractTextContentFromAst doc
 
 let generatePostHtml (markdownContent: string) =
-    // Use centralized parser instead of multiple parsing calls
-    let parsedDoc = MarkdownParser.parseDocument pipeline markdownContent
-    
-    // Convert text content to XmlNode using Giraffe ViewEngine
-    let textContentNode = 
-        if String.IsNullOrWhiteSpace(parsedDoc.TextContent) then
-            None
-        else 
-            // Use rawText to embed the HTML string as-is within a div
-            Some (div [ _class "post-text" ] [ rawText parsedDoc.TextContent ])
-    
-    // Generate the media gallery using ViewEngine
-    let mediaGallery = MediaRenderer.renderMediaGallery parsedDoc.MediaItems
-    
-    // Generate post header using ViewEngine
-    let headerNode = 
-        match parsedDoc.Metadata with
-        | Some meta ->
-            Some (div [ _class "post-header" ] [
-                h1 [ _class "post-title" ] [ str meta.title ]
-                div [ _class "post-meta" ] [
-                    time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
-                    div [ _class "post-tags" ] [
-                        for tag in meta.tags do
-                            span [ _class "tag" ] [ str tag ]
-                    ]
-                ]
-            ])
-        | None -> None
-    
-    // Create the content nodes list
-    let contentNodes = [
-        match textContentNode with
-        | Some node -> yield node
-        | None -> ()
-        yield mediaGallery
-    ]
-    
-    // Generate the complete HTML structure using ViewEngine
-    let fullPage = html [] [
-        head [] [
-            link [ _rel "stylesheet"; _href "main.css" ]
-        ]
-        body [] [
-            div [ _class "feed-container" ] [
-                article [ _class "post-card" ] [
-                    match headerNode with
-                    | Some header -> yield header
-                    | None -> ()
-                    yield div [ _class "post-content" ] contentNodes
-                ]
-            ]
-        ]
-    ]
-    
-    RenderView.AsString.htmlDocument fullPage
+    // Phase 2: Use Process → Render workflow
+    let processedPost = ContentProcessor.processPost markdownContent
+    renderProcessedPost processedPost
 
 let generateImagePost () = 
     let md = File.ReadAllText(Path.Combine("_src","image.md"))
