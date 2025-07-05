@@ -192,7 +192,22 @@ module MediaRenderer =
     open Giraffe.ViewEngine
     open Markdig.Renderers
     open Markdig.Renderers.Html
-    
+
+    let private formatCssAspectRatio (aspect: AspectRatio) =
+
+        let ratioParts (ratio:string) =
+            let parts = ratio.Split(":")
+            if parts.Length = 2 then
+                $"{parts.[0].Trim()} / {parts.[1].Trim()}"
+            else
+                "auto"
+
+        match aspect with
+        | Square x -> ratioParts (x.ToString())
+        | Wide x -> ratioParts (x.ToString())
+        | Tall x -> ratioParts (x.ToString())
+        | Custom ratio -> ratioParts (ratio.ToString())
+
     let private renderMediaItem (item: Domain.Media) =
         let mediaElement = 
             match item.MediaType with
@@ -214,7 +229,7 @@ module MediaRenderer =
         
         div [ 
             _class "media-item"
-            _style $"aspect-ratio: {item.AspectRatio}"
+            _style $"aspect-ratio: {formatCssAspectRatio item.AspectRatio}"
         ] (mediaElement :: captionElement)
     
     let private renderMediaGallery (mediaItems: Domain.Media list) =
