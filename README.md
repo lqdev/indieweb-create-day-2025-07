@@ -1,6 +1,6 @@
 # IndieWeb Create Day (July 2025)
 
-git s(https://events.indieweb.org/2025/07/indieweb-create-day-3q2PTCbGioi9).
+Experiments and hacks as part of [IndieWeb Create Day](https://events.indieweb.org/2025/07/indieweb-create-day-3q2PTCbGioi9).
 
 ## Ideas
 
