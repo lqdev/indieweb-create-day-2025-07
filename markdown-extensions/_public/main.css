@@ -248,6 +248,12 @@ hr {
     0 0 20px rgba(106, 176, 131, 0.1);
 }
 
+/* Special handling for video containers */
+.media-item:has(video) {
+  overflow: visible;
+  padding-bottom: 8px;
+}
+
 /* Specific styling for image and video items */
 .media-item:has(img),
 .media-item:has(video) {
@@ -258,14 +264,24 @@ hr {
 .media-item video {
   margin: 0;
   padding: 0;
-  flex: 1;
   width: 100%;
   height: auto;
-  object-fit: cover;
   display: block;
-  border-radius: 12px 12px 0 0;
   filter: contrast(1.1) brightness(0.9) hue-rotate(10deg);
   transition: all 0.3s ease;
+}
+
+.media-item img {
+  border-radius: 12px 12px 0 0;
+  object-fit: cover;
+  flex: 1;
+}
+
+.media-item video {
+  border-radius: 0;
+  object-fit: contain;
+  flex: none;
+  min-height: 200px;
 }
 
 .media-item:hover img,
