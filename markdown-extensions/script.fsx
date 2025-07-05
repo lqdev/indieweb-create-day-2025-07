@@ -82,6 +82,16 @@ module MarkdownParser =
     
     open YamlDotNet.Serialization
     open YamlDotNet.Serialization.NamingConventions
+    open Markdig.Renderers
+    open Markdig.Renderers.Html
+
+    // ParsedDocument type as specified in refactor plan
+    type ParsedDocument = {
+        Metadata: Domain.PostMetadata option
+        TextContent: string
+        MediaItems: Domain.Media list
+        RawMarkdown: string
+    }
 
     // DTO for YAML deserialization
     [<CLIMutable>]
@@ -197,6 +207,41 @@ module MarkdownParser =
             printfn "Failed to parse YAML: %s" ex.Message
             printfn "Content: %s" content    
             []
+
+    // AST-based text extraction to replace string manipulation
+    let extractTextContentFromAst (doc: MarkdownDocument) : string =
+        // Create a new writer and renderer for HTML output
+        let writer = new System.IO.StringWriter()
+        let renderer = new HtmlRenderer(writer)
+        
+        // Create a visitor that will filter out MediaBlocks
+        let filteredWriter = new System.IO.StringWriter()
+        let filteredRenderer = new HtmlRenderer(filteredWriter)
+        
+        // Iterate through blocks and render only non-MediaBlocks
+        for block in doc do
+            if not (block :? MediaBlock) then
+                filteredRenderer.Render(block) |> ignore
+        
+        filteredWriter.ToString()
+
+    // AST-based media extraction to centralize media parsing
+    let extractMediaFromAst (doc: MarkdownDocument) : Domain.Media list =
+        doc.Descendants<MediaBlock>()
+        |> Seq.collect (fun block -> block.MediaItems)
+        |> Seq.toList
+
+    // Centralized parsing function as single entry point
+    let parseDocument (pipeline: MarkdownPipeline) (content: string) : ParsedDocument =
+        let (metadata, contentWithoutFrontMatter) = parseFrontMatter content
+        let doc = Markdown.Parse(contentWithoutFrontMatter, pipeline)
+        
+        {
+            Metadata = metadata
+            TextContent = extractTextContentFromAst doc
+            MediaItems = extractMediaFromAst doc
+            RawMarkdown = content
+        }
 
     // Block parser class
     type MediaBlockParser() =
@@ -362,63 +407,33 @@ let pipeline =
         .Build()
 
 let extractMediaFromMarkdown (markdownContent: string) =
-    // Parse the markdown to extract the media content
-    let doc = Markdown.Parse(markdownContent, pipeline)
-    let mediaBlocks = 
-        doc.Descendants<MediaBlock>()
-        |> Seq.toList
-    
-    // Get all media items from all media blocks
-    let allMediaItems = 
-        mediaBlocks
-        |> List.collect (fun block -> block.MediaItems)
-    
-    allMediaItems
+    // Use new centralized parser instead of duplicating parsing logic
+    let parsedDoc = MarkdownParser.parseDocument pipeline markdownContent
+    parsedDoc.MediaItems
 
 let extractTextContent (markdownContentWithoutFrontMatter: string) =
-    // Remove YAML frontmatter (already removed by parseFrontMatter)
-    let lines = markdownContentWithoutFrontMatter.Split([|'\n'|], StringSplitOptions.None)
-    
-    // Remove media blocks
-    let filteredLines = 
-        lines
-        |> Array.fold (fun (acc, inMediaBlock) line ->
-            let trimmed = line.Trim()
-            if trimmed = ":::media" then
-                (acc, not inMediaBlock)
-            elif inMediaBlock then
-                (acc, inMediaBlock)
-            else
-                (line :: acc, inMediaBlock)
-        ) ([], false)
-        |> fst
-        |> List.rev
-        |> List.filter (fun line -> not (String.IsNullOrWhiteSpace(line)))
-    
-    String.concat "\n" filteredLines
+    // Use AST-based extraction instead of string manipulation
+    let doc = Markdown.Parse(markdownContentWithoutFrontMatter, pipeline)
+    MarkdownParser.extractTextContentFromAst doc
 
 let generatePostHtml (markdownContent: string) =
-    // Parse front-matter first
-    let (metadata, contentWithoutFrontMatter) = MarkdownParser.parseFrontMatter markdownContent
-    
-    let textContent = extractTextContent contentWithoutFrontMatter
-    let mediaItems = extractMediaFromMarkdown contentWithoutFrontMatter
+    // Use centralized parser instead of multiple parsing calls
+    let parsedDoc = MarkdownParser.parseDocument pipeline markdownContent
     
     // Convert text content to XmlNode using Giraffe ViewEngine
     let textContentNode = 
-        if String.IsNullOrWhiteSpace(textContent) then
+        if String.IsNullOrWhiteSpace(parsedDoc.TextContent) then
             None
         else 
-            let htmlString = Markdown.ToHtml(textContent)
             // Use rawText to embed the HTML string as-is within a div
-            Some (div [ _class "post-text" ] [ rawText htmlString ])
+            Some (div [ _class "post-text" ] [ rawText parsedDoc.TextContent ])
     
     // Generate the media gallery using ViewEngine
-    let mediaGallery = MediaRenderer.renderMediaGallery mediaItems
+    let mediaGallery = MediaRenderer.renderMediaGallery parsedDoc.MediaItems
     
     // Generate post header using ViewEngine
     let headerNode = 
-        match metadata with
+        match parsedDoc.Metadata with
         | Some meta ->
             Some (div [ _class "post-header" ] [
                 h1 [ _class "post-title" ] [ str meta.title ]
