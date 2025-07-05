@@ -1,53 +1,58 @@
-# Copilot Instructions for F# Refactoring Workflow
+# Copilot Instructions for Project Development Workflow
 
 ## Overview
 
-This document outlines the systematic refactoring workflow established for the indieweb markdown processing system. It captures the methodology used successfully in Phase 1 and Phase 2 implementations and provides a repeatable process for future phases.
+This document outlines the systematic project development workflow for the indieweb content management system. It captures proven methodologies for managing projects from backlog through completion, supporting both single-focus and multi-project development approaches.
 
-**Key Achievement**: Successfully refactored from monolithic functions to clean separation of concerns (Parse → Process → Render) while preserving 100% functionality.
+**Key Achievement**: Evolved from refactoring-specific workflow to comprehensive project management system supporting diverse development tasks while maintaining quality and documentation standards.
 
-## Refactoring Methodology
+## Universal Development Methodology
 
 ### Core Principles
 
-1. **Work Out Loud**: Document every step in `log.md` with verbose explanations
+1. **Work Out Loud**: Document every step with verbose explanations in daily logs
 2. **Incremental Implementation**: Make changes in small, testable steps
 3. **Preserve Functionality**: Ensure existing behavior is maintained throughout
-4. **Single Phase Focus**: Complete one phase entirely before proceeding to the next
-5. **Evidence-Based Planning**: Update plans based on actual implementation findings
-6. **Module Dependencies**: Always consider F# module definition order and dependencies
+4. **Evidence-Based Planning**: Update plans based on actual implementation findings
+5. **Clear Completion Criteria**: Define success metrics before starting work
+6. **Context Preservation**: Maintain project continuity across sessions
 
-### Workflow Steps
+### Project Lifecycle
 
-#### Phase Preparation
+#### Project Initiation
 
-1. **Read and Analyze Current State**
-   - Examine the target file (`script.fsx`) completely 
-   - Use `read_file` with large chunks (100+ lines) to minimize tool calls
-   - Identify specific line numbers and code patterns mentioned in refactor plan
-   - Document findings in `log.md` with specific references
-   - **Lesson Learned**: Large file reads are more efficient than multiple small reads
+1. **Identify and Plan**
+   - Review `projects/backlog.md` for prioritized work
+   - Create requirements document using `projects/templates/requirements-template.md`
+   - Collaborate to define clear problem statement, success criteria, and technical approach
+   - Create detailed implementation plan in `projects/active/[project-name].md`
+   - Update backlog item status: `[ ]` → `[>]` (in progress)
+   - Define clear objectives and success criteria
 
-2. **Document Phase Objectives**
-   - Copy relevant phase goals from `refactor-plan.md`
-   - Break down into specific, measurable tasks
-   - Identify potential risks or edge cases
-   - Log the implementation plan step-by-step
+2. **Analyze Current State**
+   - Examine relevant files completely using large chunk reads
+   - Identify specific patterns, dependencies, and constraints
+   - Document findings in daily log with specific references
+   - **Best Practice**: Large file reads are more efficient than multiple small reads
 
-#### Implementation Process
+#### Active Development
 
-3. **Step-by-Step Implementation**
+3. **Daily Work Sessions**
+   - Start with current state analysis in `logs/YYYY-MM-DD-log.md`
+   - Document session objectives and planned approach
+   - Reference active project plan for context and progress tracking
+
+4. **Step-by-Step Implementation**
    - Make one logical change at a time
-   - Document each change in `log.md` before making it
-   - Use appropriate edit tools (`replace_string_in_file`, `insert_edit_into_file`)
-   - Include 3-5 lines of context when using `replace_string_in_file`
-   - **Critical**: Plan module definition order before implementing
+   - Document each change in daily log before making it
+   - Use appropriate edit tools with sufficient context
+   - **Critical**: Consider module dependencies and system constraints
 
-4. **Immediate Testing**
+5. **Continuous Testing**
    - Test functionality after each significant change
-   - Use `run_in_terminal` to execute the script after every major edit
-   - Document test results in `log.md`
-   - Fix errors immediately before proceeding
+   - Document test results in daily log
+   - Fix issues immediately before proceeding
+   - Validate against project success criteria
    - **Best Practice**: Compile and test continuously, not just at end
 
 5. **Error Handling and Learning**
@@ -94,6 +99,11 @@ This document outlines the systematic refactoring workflow established for the i
 - **AST Traversal**: Use Markdig's `Descendants<T>()` for type-safe node extraction
 
 ### Module Responsibility Patterns ⭐ **Phase 2 Learning**
+
+- **Single Responsibility**: Each module should handle one concern (parsing, rendering, generation)
+- **Type-First Design**: Define types before functions, use them to drive API design
+- **Centralized Entry Points**: Create single functions that handle complete workflows
+- **Data Flow Architecture**: Implement clean `Parse → Process → Render` pipelines
 
 - **Single Responsibility**: Each module should handle one concern (parsing, rendering, generation)
 - **Type-First Design**: Define types before functions, use them to drive API design
@@ -358,15 +368,106 @@ After Phase 1:
 - Update migration strategies
 - Refine architectural decisions
 
-## Example Phase Completion Checklist
+## Project Workflow Management
 
-- [ ] All phase objectives implemented and tested
+### Backlog-Driven Development
+- Review `projects/backlog.md` for prioritized features and improvements
+- Select appropriate items based on current capacity and dependencies
+- Move selected items from backlog to active projects
+
+#### Moving Items to Active:
+1. **Requirements Phase**: Create requirements document using template in `projects/templates/`
+2. **Collaborative Planning**: Work together to define problem statement, success criteria, and approach
+3. **Create Project Plan**: Create detailed implementation plan in `projects/active/[project-name].md`
+4. **Update Backlog Status**: Mark as in progress: `[ ]` → `[>]`
+5. **Begin Documentation**: Start daily logging in date-based log files
+
+#### Priority Levels for Selection:
+- **High**: Critical for basic functionality
+- **Medium**: Important improvements 
+- **Low**: Nice to have features
+- **Research**: Exploratory work
+
+### Multi-Project Support
+- Support concurrent projects when appropriate
+- Maintain context switching discipline with proper documentation
+- Ensure each project has clear boundaries and deliverables
+- Use project plans in `projects/active/` for focused work tracking
+
+### Project State Management
+- **Backlog**: `[ ]` - Ideas and planned work
+- **Active**: `[>]` - Currently in progress with project plan
+- **Complete**: `[x]` - Finished and moved to archive
+- **Archive**: Projects moved to `projects/archive/` with completion summary
+
+### Documentation Hierarchy
+1. **Daily Logs** (`logs/YYYY-MM-DD-log.md`) - Implementation details and decisions
+2. **Project Plans** (`projects/active/*.md`) - Project scope, objectives, and progress
+3. **Backlog** (`projects/backlog.md`) - Strategic overview of planned work
+4. **Changelog** (`changelog.md`) - High-level site evolution summary
+
+### Project Completion Protocol
+
+#### When Completing Projects:
+1. **Finalize Documentation**
+   - Complete final summary in daily log
+   - Update project plan with completion status
+   - Document lessons learned and architectural impact
+
+2. **Archive Process**
+   - Move project plan from `active/` to `archive/`
+   - Update backlog: `[>]` → `[x]`
+   - Add entry to `changelog.md` with summary
+
+3. **Knowledge Capture**
+   - Update copilot-instructions.md with new patterns or learnings
+   - Document reusable templates or processes
+   - Note improvements for future projects
+
+#### Project Completion Workflow:
+1. **Move Project Plan**: From `active/` to `archive/`
+2. **Update Backlog Status**: Mark complete: `[>]` → `[x]`
+3. **Update Changelog**: Add summary to `changelog.md`
+4. **Document Learnings**: Update copilot-instructions.md if applicable
+
+### Changelog Entry Template
+
+When adding entries to `changelog.md`, use this template:
+
+```markdown
+## YYYY-MM-DD - [Project Name] [Status Icon]
+
+**Project**: [Link to project plan]  
+**Duration**: [Start] - [End]  
+**Status**: [Complete/In Progress/Cancelled]
+
+### What Changed
+[High-level description of what was accomplished]
+
+### Technical Improvements  
+[Bullet points of technical achievements]
+
+### Features Added/Removed
+[List of user-facing changes]
+
+### Architecture Impact
+[How this affects the overall system]
+
+### Documentation Created/Updated
+[Links to relevant documentation]
+```
+
+## Example Project Completion Checklist
+
+- [ ] All project objectives implemented and tested
 - [ ] No regression in existing functionality
-- [ ] Code quality metrics improved
-- [ ] Architecture foundation solid for next phase
-- [ ] All changes documented in log.md
-- [ ] Refactor-plan.md updated with completion status
-- [ ] Lessons learned documented for future phases
+- [ ] Code quality metrics improved (when applicable)
+- [ ] Architecture foundation solid for future work
+- [ ] All changes documented in daily logs
+- [ ] Project plan updated with completion status
+- [ ] Lessons learned documented for future projects
+- [ ] Backlog item marked complete and project archived
+- [ ] Changelog updated with project summary
 - [ ] Explicit completion declaration made
 
-This workflow ensures systematic, documented, and quality-focused refactoring that preserves functionality while improving architecture incrementally.
+This workflow ensures systematic, documented, and quality-focused development that preserves functionality while improving architecture incrementally.

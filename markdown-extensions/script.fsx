@@ -627,17 +627,6 @@ module PostGenerator =
             | Error error -> printfn "Error: %A" error
         )
 
-// Configuration-driven post generation
-let postConfigs = [
-    { PostGenerator.SourceFile = Path.Combine("_src", "image.md"); PostGenerator.OutputFile = Path.Combine("_public", "image.html"); PostGenerator.PostType = "image" }
-    { PostGenerator.SourceFile = Path.Combine("_src", "video.md"); PostGenerator.OutputFile = Path.Combine("_public", "video.html"); PostGenerator.PostType = "video" }
-    { PostGenerator.SourceFile = Path.Combine("_src", "audio.md"); PostGenerator.OutputFile = Path.Combine("_public", "audio.html"); PostGenerator.PostType = "audio" }
-    { PostGenerator.SourceFile = Path.Combine("_src", "mixed.md"); PostGenerator.OutputFile = Path.Combine("_public", "mixed.html"); PostGenerator.PostType = "mixed" }
-]
-
-// Generate all posts using the new PostGenerator module
-PostGenerator.generateAllPosts postConfigs
-
 open ErrorTypes
 
 // Validation module for input validation (Phase 4)
@@ -722,3 +711,16 @@ module Validation =
             Ok post
         else
             Error allErrors
+
+
+// This is the actual code
+// Configuration-driven post generation
+let postConfigs = [
+    { PostGenerator.SourceFile = Path.Combine("_src", "image.md"); PostGenerator.OutputFile = Path.Combine("_public", "image.html"); PostGenerator.PostType = "image" }
+    { PostGenerator.SourceFile = Path.Combine("_src", "video.md"); PostGenerator.OutputFile = Path.Combine("_public", "video.html"); PostGenerator.PostType = "video" }
+    { PostGenerator.SourceFile = Path.Combine("_src", "audio.md"); PostGenerator.OutputFile = Path.Combine("_public", "audio.html"); PostGenerator.PostType = "audio" }
+    { PostGenerator.SourceFile = Path.Combine("_src", "mixed.md"); PostGenerator.OutputFile = Path.Combine("_public", "mixed.html"); PostGenerator.PostType = "mixed" }
+]
+
+// Generate all posts using the new PostGenerator module
+PostGenerator.generateAllPosts postConfigs            
