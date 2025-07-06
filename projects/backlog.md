@@ -20,6 +20,10 @@
 
 ### Fixes
 
+### Developer experience
+
+- [ ] Add *.devcontainer.json* file based on Python and .NET https://www.lqdev.me/wiki/devcontainers-configurations
+
 ### Code Quality
 
 - [ ] **Error Message Improvements** - More descriptive error messages with context
