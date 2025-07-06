@@ -1,5 +1,36 @@
 # Site Changelog
 
+## 2025-07-05 - Order Tags Below Date Rendering Improvement ✅
+
+**Project**: [Order Tags Below Date](archive/order-tags-below-date.md)  
+**Duration**: 2025-07-05 (Single session)  
+**Status**: Complete
+
+### What Changed
+Improved visual hierarchy by positioning tags below the date instead of side-by-side, creating clearer information flow in post headers.
+
+### Technical Improvements  
+- **Better Visual Hierarchy**: Clear progression from title → date → tags → content
+- **Improved Readability**: Logical vertical information flow reduces cognitive load
+- **Responsive Layout**: Vertical tag positioning handles varying tag counts better
+- **CSS-Only Solution**: Clean implementation without structural HTML changes
+
+### Features Added
+- Vertical flexbox layout for post metadata (`.post-meta` CSS modification)
+- Left-aligned date and tag positioning for consistent layout
+- Optimized spacing between date and tag elements (12px gap)
+- Enhanced visual organization across all post types
+
+### Architecture Impact
+Enhanced user experience through improved visual hierarchy while maintaining all existing functionality and semantic HTML structure.
+
+### Code Quality Improvements
+- **Minimal Impact**: Single CSS rule change achieved desired layout improvement
+- **Maintainable**: Easy to adjust spacing or alignment in future iterations
+- **Zero Regression**: No impact on existing F# code or HTML structure
+
+---
+
 ## 2025-07-05 - Format Publish Date Rendering Feature ✅
 
 **Project**: [Format Publish Date](archive/format-publish-date.md)  
