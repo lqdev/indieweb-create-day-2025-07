@@ -304,7 +304,7 @@ module MarkdownParser =
             elif lineText.StartsWith(":::") then
                 // Different fence type, close this block
                 processor.Close(block)
-                BlockState.Break
+                BlockState.BreakDiscard
             else
                 // Continue collecting content - preserve original indentation
                 let mediaBlock = block :?> MediaBlock

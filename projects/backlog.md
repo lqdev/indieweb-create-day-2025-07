@@ -18,8 +18,6 @@
 
 ### Fixes
 
-- [ ] Remove extra `:::` in *mixed.html*
-
 ### Code Quality
 
 - [ ] **Error Message Improvements** - More descriptive error messages with context

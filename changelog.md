@@ -1,5 +1,62 @@
 # Site Changelog
 
+## 2025-07-05 - Remove Extra `:::` in Mixed.html Bug Fix ✅
+
+**Project**: [Remove Extra Colons Bug](archive/remove-extra-colons-bug.md)  
+**Duration**: 2025-07-05 (Single session)  
+**Status**: Complete
+
+### What Changed
+Fixed markdown processing bug that caused extra `:::` fence markers to appear in generated HTML text content.
+
+### Technical Improvements  
+- **Clean HTML Output**: Eliminated `<p>:::</p>` artifacts from mixed media posts
+- **Proper Fence Handling**: MediaBlockParser now correctly discards closing fence markers
+- **User Experience**: Professional HTML generation without processing artifacts
+
+### Bug Fix Details
+- **Root Cause**: `MediaBlockParser.TryContinue` using `BlockState.Break` instead of `BlockState.BreakDiscard`
+- **Solution**: Single-line change to properly discard closing `:::` fence markers
+- **Testing**: Verified all four post types (image, video, audio, mixed) work correctly
+
+### Architecture Impact
+Enhanced markdown processing reliability by ensuring fence markers are consistently handled during parsing.
+
+---
+
+## 2025-07-05 - README.md Update Project ✅
+
+**Project**: [README Update](archive/readme-update.md)  
+**Duration**: 2025-07-05  
+**Status**: Complete  
+
+### What Changed
+Completely overhauled README.md from 12-line hackathon ideas document to comprehensive, professional project documentation.
+
+### Technical Improvements
+- **Professional Documentation**: 150+ lines comprehensive project documentation
+- **Clear Onboarding**: Step-by-step getting started instructions for new contributors
+- **Architecture Overview**: Detailed system components and processing pipeline
+- **Current Capabilities**: Accurate reflection of working system features
+
+### Features Added
+- Project structure documentation with clear descriptions
+- Technology stack details with role explanations  
+- Getting started guide with verified instructions
+- Contributing guidelines with workflow references
+- Examples section showing input → output transformations
+- Current status and roadmap sections
+
+### Architecture Impact
+Improved developer onboarding and project transparency with accurate system documentation.
+
+### Documentation Created/Updated
+- `README.md` - Complete rewrite (12 → 150+ lines)
+- Links to project management workflow documentation
+- Integration with backlog and changelog systems
+
+---
+
 ## 2025-07-05 - Markdown Processing System Refactoring ✅
 
 **Project**: [Refactor Plan - Script.fsx Architecture](archive/refactor-plan.md)  
