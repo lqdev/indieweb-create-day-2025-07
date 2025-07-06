@@ -69,6 +69,38 @@ module Domain =
         MediaItems: Media list
     }
 
+// Date formatting utilities
+module DateUtils =
+    open System
+    open System.Globalization
+    
+    /// Format a date string for display as YYYY-MM-DD HH:MM
+    /// Preserves original format if parsing fails
+    let formatDisplayDate (dateString: string) : string =
+        try
+            // Try parsing common ISO 8601 formats with timezone
+            let formats = [|
+                "yyyy-MM-dd HH:mm zzz"  // 2025-07-05 11:47 -05:00
+                "yyyy-MM-dd HH:mm:ss zzz"  // 2025-07-05 11:47:30 -05:00
+                "yyyy-MM-ddTHH:mm:ssK"  // 2025-07-05T11:47:30-05:00
+                "yyyy-MM-dd HH:mm"  // 2025-07-05 11:47 (already in target format)
+                "yyyy-MM-dd"  // 2025-07-05 (date only)
+            |]
+            
+            let mutable parsedDate = DateTime.MinValue
+            if DateTime.TryParseExact(dateString, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, &parsedDate) then
+                // Format as YYYY-MM-DD HH:MM
+                parsedDate.ToString("yyyy-MM-dd HH:mm")
+            else
+                // Fallback: try general parsing
+                let mutable generalParsed = DateTime.MinValue
+                if DateTime.TryParse(dateString, &generalParsed) then
+                    generalParsed.ToString("yyyy-MM-dd HH:mm")
+                else
+                    // If all parsing fails, return original string
+                    dateString
+        with
+        | _ -> dateString  // Return original string on any exception
 
 // Error types for comprehensive error handling (Phase 4)
 module ErrorTypes =
@@ -354,7 +386,7 @@ module MediaRenderer =
                             div [ _class "post-header" ] [
                                 h1 [ _class "post-title" ] [ str meta.title ]
                                 div [ _class "post-meta" ] [
-                                    time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
+                                    time [ _class "post-date"; _datetime meta.publish_date ] [ str (DateUtils.formatDisplayDate meta.publish_date) ]
                                     div [ _class "post-tags" ] [
                                         for tag in meta.tags do
                                             span [ _class "tag" ] [ str tag ]
@@ -497,7 +529,7 @@ module ContentProcessor =
                         Some (div [ _class "post-header" ] [
                             h1 [ _class "post-title" ] [ str meta.title ]
                             div [ _class "post-meta" ] [
-                                time [ _class "post-date"; _datetime meta.publish_date ] [ str meta.publish_date ]
+                                time [ _class "post-date"; _datetime meta.publish_date ] [ str (DateUtils.formatDisplayDate meta.publish_date) ]
                                 div [ _class "post-tags" ] [
                                     for tag in meta.tags do
                                         span [ _class "tag" ] [ str tag ]
@@ -723,4 +755,4 @@ let postConfigs = [
 ]
 
 // Generate all posts using the new PostGenerator module
-PostGenerator.generateAllPosts postConfigs            
+PostGenerator.generateAllPosts postConfigs

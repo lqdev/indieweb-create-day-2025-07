@@ -4,8 +4,6 @@
 
 ### Rendering
 
-- [ ] Format publish date as `YYYY-MM-DD HH:MM` in post rendering.
-
 ### Content Management
 - [ ] **Automated Image Optimization** - Compress and optimize images during processing
 - [ ] **Tag System** - Add tagging support for content organization

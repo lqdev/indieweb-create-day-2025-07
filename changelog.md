@@ -1,5 +1,36 @@
 # Site Changelog
 
+## 2025-07-05 - Format Publish Date Rendering Feature ✅
+
+**Project**: [Format Publish Date](archive/format-publish-date.md)  
+**Duration**: 2025-07-05 (Single session)  
+**Status**: Complete
+
+### What Changed
+Implemented standardized date formatting for post rendering, displaying dates as clean `YYYY-MM-DD HH:MM` format while preserving semantic HTML.
+
+### Technical Improvements  
+- **Clean Date Display**: All dates now show as `2025-07-05 11:47` without timezone clutter
+- **Semantic HTML Preserved**: Original timezone-aware dates maintained in `datetime` attributes for accessibility
+- **Centralized Formatting**: New `DateUtils` module provides reusable date formatting utilities
+- **Multiple Format Support**: Handles various ISO 8601 input formats with graceful fallback
+
+### Features Added
+- `DateUtils.formatDisplayDate` function with robust date parsing
+- Support for timezone-aware date inputs (current) and various ISO formats
+- Consistent date display across all post types (image, video, audio, mixed)
+- Error handling with fallback to original format if parsing fails
+
+### Architecture Impact
+Enhanced user experience with cleaner date presentation while maintaining web standards compliance through proper datetime attributes.
+
+### Code Quality Improvements
+- **User Experience**: Improved readability with clean date format
+- **Maintainability**: Centralized date formatting logic in dedicated utility module
+- **Robustness**: Multiple input format support with graceful error handling
+
+---
+
 ## 2025-07-05 - Remove Extra `:::` in Mixed.html Bug Fix ✅
 
 **Project**: [Remove Extra Colons Bug](archive/remove-extra-colons-bug.md)  
