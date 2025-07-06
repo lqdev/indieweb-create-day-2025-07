@@ -29,6 +29,7 @@
 
 ## Documentation & Processes
 
+- [>] **Update README.md** - Reflect current entry point and project structure
 - [ ] **User Guide** - Complete guide for content creators
 - [ ] **Contributor Guidelines** - Guide for developers wanting to contribute
 - [ ] **Architecture Documentation** - Comprehensive system architecture docs
